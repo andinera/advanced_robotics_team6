@@ -612,7 +612,7 @@ def odroid():
                 print
 
                 # Kill command
-                if ir_top_pid.recorded_states[-1] <= 65:
+                if math.fabs(ir_top_pid.recorded_states[-1]) <= 65:
                     break
 
 if __name__ == '__main__':
