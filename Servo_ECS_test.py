@@ -1,24 +1,29 @@
 import serial
 import time
-import maestro
 
 def mini_Protocol(usb):
     time.sleep(1)
     usb.write(chr(0xFF)+chr(0x01)+chr(125))
-    usb.write(chr(0x90)+chr(0x01))
+
     time.sleep(2)
     usb.write(chr(0xFF)+chr(0x01)+chr(150))
-    usb.write(chr(0x90)+chr(0x01))
+
 
     usb.write(chr(0xFF)+chr(0x00)+chr(125))
-    usb.write(chr(0x90)+chr(0x00))
 
-    for i in range(125,170):
+
+    for i in range(125,255):
         usb.write(chr(0xFF)+chr(0x01)+chr(i))
-        usb.write(chr(0x90)+chr(0x01))
+
         usb.write(chr(0xFF)+chr(0x00)+chr(i))
-        usb.write(chr(0x90)+chr(0x00))
-        time.sleep(.1)
+
+        time.sleep(.01)
+    for i in range(254,124,-1):
+        usb.write(chr(0xFF)+chr(0x01)+chr(i))
+
+        usb.write(chr(0xFF)+chr(0x00)+chr(i))
+
+        time.sleep(.01)
 
     time.sleep(2)
     usb.write(chr(0xFF)+chr(0x01)+chr(125))
