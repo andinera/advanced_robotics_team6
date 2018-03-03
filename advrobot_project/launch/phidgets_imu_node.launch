@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find advrobot_project)/launch/imu.launch"/>
+    <node pkg="advrobot_project" type="imu_listener.py" name="ir"/>
+</launch>

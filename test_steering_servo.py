@@ -27,7 +27,7 @@ def mini_protocol(usb):
 
 # Uses Pololu's Compact protocol
 def compact_protocol(usb):
-    # Sweep wheels form left to right
+    # Sweep wheels left to right
     for i in range(4095,7906):
         # Convert integer to high and low binary values
         low = int("{0:b}".format(i)[-7:], base=2)

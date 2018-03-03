@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="advrobot_project" type="steering_node.py" name="steering"/>
+    <node pkg="advrobot_project" type="motor_node.py" name="motor"/>
+    <node pkg="advrobot_project" type="ir_sensor_one_node.py" name="ir_sensor_one"/>
+    <node pkg="advrobot_project" type="odroid_node.py" name="odroid" output="screen"/>
+</launch>
