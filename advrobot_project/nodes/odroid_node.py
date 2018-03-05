@@ -1,167 +1,72 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import Int64
-import sys
-import numpy
+from pololu import Controller
 
-# Motor and servo
-##########################
-# Input range [4095, 7905]
-##########################
 
-############### Objects #####################
+MIN = 4095
+MAX = 7905
+CENTER = 6000
 
-class SteeringController:
-
-    def __init__(self):
-        self.pub_position = 6000
-        self.sub_position = 6000
-        self.pub = rospy.Publisher('steer/set_position', Int64, queue_size=1)
-        # self.sub = rospy.Subscriber('steer/get_position', Int64, SteeringController.steering_position, self)
-        self.rate = rospy.Rate(1)
-
-    # @staticmethod
-    # def steering_position(data, sC):
-    #     sC.sub_position = data.data
-    #     sC.rate.sleep()
-
-    def set_position(self, position):
-        self.pub.publish(position)
-        self.pub_position = position
-
-class MotorController:
-
-    def __init__(self):
-        self.pub_speed = 6000
-        self.sub_speed = 6000
-        self.pub = rospy.Publisher('motor/set_speed', Int64, queue_size=1)
-        # self.sub = rospy.Subscriber('motor/get_speed', Int64, MotorController.motor_speed, self)
-        self.rate = rospy.Rate(1)
-
-    # @staticmethod
-    # def motor_speed(data, mC):
-    #     mC.sub_speed = data.data
-    #     mC.rate.sleep()
-
-    def set_speed(self, speed):
-        self.pub.publish(speed)
-        self.pub_speed = speed
-
-    # def brake():
-    #     if mC.sub_speed <= 6000:
-    #         mC.publish_speed(6000)
-    #     else:
-    #         mC.publish_speed(4095)
-    #         rospy.sleep(0.1)
-    #         mC.publish_speed(6000)
-    #         while True:
-    #             if mC.sub_speed == 6000:
-    #                 mC.publish_speed(6000)
-    #                 return
-
-class IRSensorOneController:
-
-##################
-# Peak value [650]
-##################
-
-    def __init__(self):
-        self.distance = 0
-        sub = rospy.Subscriber('ir_sensor_one/get_distance', Int64, IRSensorOneController.ir_distance, self)
-        self.rate = rospy.Rate(10)
-
-    @staticmethod
-    def ir_distance(data, sC):
-        sC.distance = data.data
-        sC.rate.sleep
-
-    def get_distance(self):
-        return self.distance
-
-class IRSensorTwoController:
-
-##################
-# Peak value [650]
-##################
-
-    def __init__(self):
-        self.distance = 0
-        sub = rospy.Subscriber('ir_sensor_two/get_distance', Int64, IRSensorTwoController.ir_distance, self)
-        self.rate = rospy.Rate(100)
-
-    @staticmethod
-    def ir_distance(data, sC):
-        sC.distance = data.data
-        sC.rate.sleep()
-
-class IMUController:
-
-    def __init__(self):
-        pass
-
-class CameraController:
-
-    def __init__(self):
-        pass
-
-class IMUController:
-
-    def __init__(self):
-        pass
-
-class CameraController:
-
-    def __init__(self):
-        pass
-
-def control(sC, mC, irOneC):
-    rate = rospy.Rate(10)
-    # distances = numpy.array([])
-    previous_distance = 450
-    while not rospy.is_shutdown():
-        mC.set_speed(6000)
-        distance = irOneC.get_distance()
-        # distances = numpy.append(distances, distance)
-        print distance
-        # while distances.size > 10:
-        #     distances = numpy.delete(distances, 0)
-        # if distances.size == 10:
-            # avg_distance = numpy.sum(distances)/10
-        if distance > 500 or distance < 400:
-            if distance > previous_distance:
-                sC.set_position(7000)
-            elif distance < previous_distance:
-                sC.set_position(5000)
+def follow_wall_on_right():
+    with Controller(0) as steering, Controller(1) as motor, \
+         Controller(2) as ir_one:
+        rate = rospy.Rate(100)
+        prev_distance = 0
+        cornering = False
+        # motor.set_target(MAX)
+        while not rospy.is_shutdown():
+            steer = steering.target
+            distance = ir_one.get_position()
+            # If program just started, wait another round
+            if prev_distance == 0:
+                pass
+            # If close to the wall
+            elif distance > 550:
+                # If going around a corner
+                if cornering:
+                    cornering = False
+                # If moving away from the wall, steer straight
+                if prev_distance > distance:
+                    steering.set_target(CENTER)
+                # If moving towards the wall, turn hard left
+                else:
+                    steering.set_target(MIN)
+            # If going around a corner, turn hard right
+            elif distance < 300 and not cornering:
+                cornering = True
+                steering.set_target(MAX)
+            # If far from the wall
+            elif distance < 450:
+                # If going around a corner
+                if cornering:
+                    # If can't sense the wall, turn hard right
+                    if distance < 300:
+                        steering.set_target(MAX)
+                    # If moving towards the wall, steer straight
+                    elif prev_distance < distance:
+                        steering.set_target(CENTER)
+                    # If moving away from the wall, turn hard right
+                    else:
+                        steering.set_target(MAX)
+                # If moving towards the wall, steer straight
+                elif prev_distance < distance:
+                    steering.set_target(CENTER)
+                # If moving away from the wall, turn hard right
+                else:
+                    steering.set_target(MAX)
+            # If in the ideal range from the wall, turn wheels appropriately to
+            # maintain center line
             else:
-                sC.set_position(6000)
-            print distance
-        elif distance > 600:
-            sC.set_position(5000)
-        elif distance < 300:
-            sC.set_position(7000)
-        previous_distance = distance
-        rate.sleep()
-            # print previous_distance
-            # print distances.size
-
-
-#################### Main #########################
+                # If going around a corner
+                if cornering:
+                    cornering = False
+                difference = (distance - 450) / 100
+                steer = (MAX - MIN) * difference + MIN
+                steering.set_target(steer)
+            prev_distance = distance
+            rate.sleep()
 
 if __name__ == '__main__':
     rospy.init_node('odroid')
-    sC = SteeringController()
-    mC = MotorController()
-    irOneC = IRSensorOneController()
-    # irTwoC = IRSensorTwoController()
-    # imuC = IMUController()
-    # cameraC = CameraController()
-
-    control(sC, mC, irOneC)
-
-    # steering(sC)
-    # motor(mC)
-    # ir_sensor_one(irOneC)
-    # ir_sensor_two(irTwoC)
-    # imu(imuC)
-    # camera(cameraC)
+    follow_wall_on_right()
