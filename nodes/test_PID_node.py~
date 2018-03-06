@@ -13,8 +13,10 @@ CENTER = 6000
 def PIDControl(P,I,D):
     with Controller(0) as steering, Controller(1) as motor, \
          Controller(2) as ir_one:
-
+	motor.set_target(6000)
+	time.sleep(2)
         pid = PID.PID(P, I, D)
+
 
         ir_one.get_position()
         distances = []
@@ -26,9 +28,7 @@ def PIDControl(P,I,D):
         print start_distance #average of initial IR sensor data
         pid.setSampleTime(0.1)
 
-#        motor.set_target(MAX)
-#	time.sleep(0.05)
-	motor.set_target(6500)
+        motor.set_target(6200)
 
         while not rospy.is_shutdown():
 		
