@@ -5,7 +5,6 @@ from time import sleep
 from pololu import Controller
 import csv
 
-
 rospy.init_node('tester')
 
 csv_out = open("ir_output.csv", 'a')
