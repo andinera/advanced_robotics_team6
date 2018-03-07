@@ -38,6 +38,8 @@ class Controller:
 
     # This will close the usb port upon deleting this object
     def __del__(self):
+        if self.target != 6000:
+            self.set_target(6000)
         pass
 
     # Pass servo target as an integer in the range [4095, 7905]
