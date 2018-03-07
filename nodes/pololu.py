@@ -15,7 +15,7 @@ import serial
 # Pololu driver
 class Controller:
 
-    # usb = serial.Serial('/dev/ttyACM0')
+    usb = serial.Serial('/dev/ttyACM0')
 
     # Pass component channel as an integer in the range [0,17] and serial port
     # as a string
@@ -24,7 +24,7 @@ class Controller:
     # This example will initialize the Controller with channel 0 and the serial
     # connection to '/dev/ttyACM0'.
     def __init__(self, channel=0, usb='/dev/ttyACM0'):
-        # Controller.usb = serial.Serial(usb)
+        Controller.usb = serial.Serial(usb)
         self.channel = channel
         self.target = 6000
 
