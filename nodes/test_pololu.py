@@ -12,7 +12,7 @@ def convert(x):
 
 rospy.init_node('tester')
 
-csv_in = open("ir_output.csv", 'r')
+csv_in = open("../data/ir_out.csv", 'r')
 reader = csv.reader(csv_in)
 i = 1
 for row in reader:

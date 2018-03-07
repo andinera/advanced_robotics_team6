@@ -120,8 +120,8 @@ class Controller:
         most = "{0:08b}".format(most)
         position = "{}{}".format(most, least)
         position = int(position, base=2)
-	    position = (1000 / float(position)) - 1
-        position = 0.1674*position**3 - 0.6824*position**2 + 1.8431*position - 0.3559
+        # position = (1000 / float(position)) - 1
+        # position = 0.1674*position**3 - 0.6824*position**2 + 1.8431*position - 0.3559
         return position
 
     # Example call
