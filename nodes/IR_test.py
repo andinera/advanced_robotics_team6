@@ -30,6 +30,7 @@ with Controller(2) as ir_bottom, Controller(3) as ir_top:
         # D = d1*m.sqrt(1-(d1/d2 - m.cos(phi))**2)
 
         if write_data:
+            # first number in list is distance [cm] to target
             writer.writerow([350, data_top, data_bottom])
 
         print i,"\t",d1,"\t",d2
