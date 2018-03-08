@@ -118,11 +118,13 @@ class Controller:
         most = ord(Controller.usb.read())
         least = "{0:08b}".format(least)
         most = "{0:08b}".format(most)
-        position = "{}{}".format(most, least)
-        position = int(position, base=2)
-        # position = (1000 / float(position)) - 1
-        # position = 0.1674*position**3 - 0.6824*position**2 + 1.8431*position - 0.3559
-        return position
+        pos = "{}{}".format(most, least)
+        pos = int(pos, base=2)
+        pos = 1/float(pos)
+        pos = 3212000000*pos**3 - 17229000*pos**2 + 129560*pos - 117.11
+        # pos = 1000/float(pos) - 1
+        # pos = 0.1674*pos**3 - 0.6824*pos**2 + 1.8431*pos - 0.3559
+        return pos
 
     # Example call
     # Controller.get_moving_state()
