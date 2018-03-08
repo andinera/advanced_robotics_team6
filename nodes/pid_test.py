@@ -15,9 +15,8 @@ def PIDControl(P,I,D):
          Controller(2) as ir_one:
 
         pid = PID.PID(P, I, D)
-
-
-        ir_one.get_position()
+        motor.set_target(6000)
+        time.sleep(2)
         distances = []
         for i in range(1,50):
             distances.append(ir_one.get_position())
