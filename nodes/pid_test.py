@@ -14,12 +14,18 @@ def PIDControl(P,I,D):
     with Controller(0) as steering, Controller(1) as motor, \
          Controller(2) as ir_bottom:
 
+<<<<<<< HEAD
 	motor.set_target(CENTER)
 	time.sleep(2)
 
         pid = PID.PID(P, I, D)
 
         ir_bottom.get_position()
+=======
+        pid = PID.PID(P, I, D)
+        motor.set_target(6000)
+        time.sleep(2)
+>>>>>>> b6566164ccdb9931be123829bfcd813b957f4b81
         distances = []
         for i in range(1,50):
             distances.append(ir_bottom.get_position())
