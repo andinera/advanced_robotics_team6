@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="advrobot_project" type="odroid_node.py" name="odroid" output="screen"/>
-</launch>

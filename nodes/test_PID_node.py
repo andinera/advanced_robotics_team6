@@ -16,6 +16,7 @@ def PIDControl(P,I,D):
 
         pid = PID.PID(P, I, D)
 
+
         ir_one.get_position()
         distances = []
         for i in range(1,50):
@@ -26,15 +27,13 @@ def PIDControl(P,I,D):
         print start_distance #average of initial IR sensor data
         pid.setSampleTime(0.1)
 
-#        motor.set_target(MAX)
-#	time.sleep(0.05)
-	motor.set_target(6500)
+        motor.set_target(6200)
 
         while not rospy.is_shutdown():
-		
+
             distance = ir_one.get_position()
             pid.update(distance)
-            output = int(pid.output) + 6000
+            output = int(pid.output)*2 + 6000
             print output
             if output > 7905:
                 steering.set_target(7905)
@@ -49,5 +48,5 @@ if __name__ == '__main__':
     rospy.init_node('odroid')
     P = 3
     I = 1
-    D = 1
+    D = 3
     PIDControl(P,I,D)
