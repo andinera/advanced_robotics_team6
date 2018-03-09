@@ -1,4 +1,3 @@
 <launch>
-    <!-- <node pkg="advrobot_project" type="pid_test.py" name="odroid" output="screen"/> -->
     <node pkg="advanced_robotics_team6" type="pid_test.py" name="odroid" output="screen"/>
 </launch>
