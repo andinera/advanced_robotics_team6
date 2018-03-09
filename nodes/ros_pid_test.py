@@ -4,91 +4,94 @@ import rospy
 import time
 from pololu import Controller
 
+# import message types
 from std_msgs.msg import String
 from std_msgs.msg import Float64
 from std_msgs.msg import Bool
 
-# additional imports
+MIN = 4095
+MAX = 7905
+CENTER = 6000
 
-def get_pid_control(ctrl_msg):
+def get_pid_control(ctrl_msg, steering):
 
-    pos_cmd = ctrl_msg.my_data
+    pos_cmd = int(ctrl_msg.data)
+    pos_cmd += CENTER
+    rospy.loginfo("Position Command: %d", pos_cmd)
 
     # send position command to sterring servo
+    # (don't think this if-else structure should be necessary because of
+    # upper_limit and lower_limit params set in launch file)
+    if pos_cmd > MAX:
+        steering.set_target(MAX)
+    elif pos_cmd < MIN:
+        steering.set_target(MIN)
+    else:
+        steering.set_target(pos_cmd)
 
-
-
-def get_pose(odom_msg):
-
-    pos = odom_msg.pose.pose.position
-    pos_list = [pos.x, pos.y, pos.z]
-
-    quaternion = odom_msg.pose.pose.orientation
-    quat_list = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-
-    euler_angles = np.asarray(euler_from_quaternion(quat_list))     # [radians]
-    # print type(euler_angles)
-    euler_angles.shape = (3,1)
-    euler_list = [euler_angles[0,0], euler_angles[1,0], euler_angles[2,0]]
-
-    # rospy.loginfo("Position: [%f %f %f]" % pos_list)    # doesn't work
-    # rospy.loginfo("Position: [%f %f %f]" % (pos.x, pos.y, pos.z))
-    # rospy.loginfo("Quaternion: [%f %f %f %f]" % (quaternion.x, quaternion.y, quaternion.z, quaternion.w))
-    # rospy.loginfo("Euler Angles: [%f %f %f]" % (euler_angles[0,0], euler_angles[1,0], euler_angles[2,0]))
-
+    # not sure if there should be a sleep command here...
+    time.sleep(.05)
 
 def pid_broadcaster():
-
-    # Publisher init
-    setpoint_pub = rospy.Publisher("robot/pid/steering/setpoint", Float64, queue_size=10)
-    state_pub = rospy.Publisher("robot/pid/steering/state", Float64, queue_size=10)
-    pidEnable_pub = rospy.Publisher,"robot/pid/sterring/enable", Bool, queue_size=10
-
-    # Subscriber init
-    controlEffort_sub = rospy.Subscriber("robot/pid/steering/control_effort", Float64, get_pid_control)
-
-    # Node init
-    rospy.init_node('broadcast', anonymous=True)
 
     with Controller(0) as steering, Controller(1) as motor, \
          Controller(2) as ir_bottom:
 
-         # set zero intial velocity
-         motor.set_target(CENTER)
-         time.sleep(2)
+        # Publisher init
+        setpoint_pub = rospy.Publisher("robot/pid/steering/setpoint", Float64, queue_size=10)
+        state_pub = rospy.Publisher("robot/pid/steering/state", Float64, queue_size=10)
+        enable_pub = rospy.Publisher("robot/pid/steering/enable", Bool, queue_size=10)
 
-         # define setpoint by averaging initial position data
-         setpoint_msg = Float64()
+        # Subscriber init
+        controlEffort_sub = rospy.Subscriber("robot/pid/steering/control_effort", Float64, get_pid_control, steering)
 
-         distance = []
-         for i in range(1,50):
-             distance.append(ir_bottom.get_position())
-             time.sleep(.01)
+        # Node init
+        rospy.init_node('pid_broadcaster', anonymous=True)
 
-         # average of initial IR sensor data
-         setpoint = int(sum(distance) / float(len(distance)))
-         setpoint_msg.data = setpoint
-         setpoint_pub.Publish(setpoint_msg)
-         print "Start Distance: ",setpoint," cm"
+        # enable PID controller
+        pid_enable_msg = Bool()
+        pid_enable_msg.data = True
+        enable_pub.publish(pid_enable_msg)
 
-         # set forward speed
-         motor.set_target(CENTER + 300)
+        # set zero intial velocity
+        motor.set_target(CENTER)
+        steering.set_target(CENTER)
+        time.sleep(2)
 
-        count = 0
+        # define setpoint and state messages
+        setpoint_msg = Float64()
+        state_msg = Float64()
+
+        # define setpoint by averaging initial position data
+        distance = []
+        for i in range(1,50):
+            distance.append(ir_bottom.get_position())
+            time.sleep(.01)
+
+        # average of initial IR sensor data
+        setpoint = int(sum(distance) / float(len(distance)))
+        setpoint_msg.data = setpoint
+        setpoint_pub.publish(setpoint_msg)
+        print "Setpoint = ",setpoint," cm"
+
+        # set forward speed
+        offset = 150
+        motor.set_target(CENTER + offset)
+
         while not rospy.is_shutdown():
 
-            #define state message
-            state_msg = Float64()
+            # get position reading from IR sesnor(s)
+            position = ir_bottom.get_position()
+            rospy.loginfo("IR Position: %f", position)
 
-            state_msg.data = pos
+            # use heading data to correct position measurement
 
-
-            imu_pub.publish(imu_msg)
-
-            count += 1
+            state_msg.data = position
+            state_pub.publish(state_msg)
 
             # what is this doing?
-            rate.sleep()
+            time.sleep(0.05)
+
 
 if __name__ == '__main__':
     try:
