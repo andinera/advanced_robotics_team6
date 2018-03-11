@@ -70,18 +70,21 @@ def pid_broadcaster():
         # Subscriber init
         controlEffort_sub = rospy.Subscriber("robot/pid/steering/control_effort", Float64, get_pid_control, steering)
 
-        # Iterate at 100 Hz
-        rate = rospy.Rate(100)
+        # Iterate at 50 Hz
+        # Rate based on Pololu documentation
+        # States most servos are designed for 50 Hz operation
+        rate = rospy.Rate(50)
 
         while not rospy.is_shutdown():
 
             # get position reading from IR sesnor(s)
             position = []
-            for i in range(1,1):
+            for i in range(10):
                 position.append(ir_bottom.get_position())
-                time.sleep(0.01)
-            
-            position = sum(position) / int(len(distance))
+
+            position = sum(position) / int(len(position))
+
+           # position = ir_bottom.get_position()
             rospy.loginfo("IR Position:\t%f", position)
 
             # use heading data to correct position measurement

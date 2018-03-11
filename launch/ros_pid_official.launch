@@ -22,7 +22,7 @@
         <param name="min_loop_frequency" value="95.0" />
      </node>
 
-     <node pkg="advanced_robotics_team6" type="ros_pid_test.py" name="pid_broadcast" output="screen" />
+     <node pkg="advanced_robotics_team6" type="ros_pid_official.py" name="pid_broadcast" output="screen" />
 
     <!--
     <node name="servo_sim_node" pkg="pid" type="plant_sim" output="screen" >
