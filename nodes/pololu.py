@@ -27,6 +27,7 @@ class Controller:
         Controller.usb = serial.Serial(usb)
         self.channel = channel
         self.target = 6000
+        self.pid_control_effort = 0
 
     # Required for using in conjunction with a "with" statement
     def __enter__(self):
