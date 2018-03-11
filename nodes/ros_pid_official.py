@@ -28,9 +28,6 @@ def get_pid_control(ctrl_msg, steering):
     else:
         steering.set_target(steering_cmd)
 
-    # not sure if there should be a sleep command here...
-    time.sleep(.01)
-
 def pid_broadcaster():
 
     with Controller(0) as steering, Controller(1) as motor, \
@@ -92,14 +89,8 @@ def pid_broadcaster():
             state_msg.data = position
             state_pub.publish(state_msg)
 
-<<<<<<< HEAD:nodes/ros_pid_official.py
-            # what is this doing?
-            time.sleep(0.01)
-=======
             # Iterate at frequency of rate
             rate.sleep()
->>>>>>> 3595857ac7625fe5b182926d35d9d1b55dcf99b5:nodes/ros_pid_test.py
-
 
 if __name__ == '__main__':
     # Node init
