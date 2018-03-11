@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="advanced_robotics_team6" type="pid_test.py" name="odroid" output="screen"/>
-</launch>

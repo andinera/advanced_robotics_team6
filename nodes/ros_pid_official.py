@@ -5,7 +5,6 @@ import time
 from pololu import Controller
 
 # import message types
-from std_msgs.msg import String
 from std_msgs.msg import Float64
 from std_msgs.msg import Bool
 
@@ -19,7 +18,7 @@ def get_pid_control(ctrl_msg, steering):
     steering_cmd += CENTER
     rospy.loginfo("Position Command:\t%d", steering_cmd)
 
-    # send position command to sterring servo
+    # send position command to steering servo
     # (don't think this if-else structure should be necessary because of
     # upper_limit and lower_limit params set in launch file)
     if steering_cmd > MAX:
@@ -35,18 +34,12 @@ def get_pid_control(ctrl_msg, steering):
 def pid_broadcaster():
 
     with Controller(0) as steering, Controller(1) as motor, \
-         Controller(2) as ir_bottom:
+         Controller(2) as ir_bottom, Controller(3) as ir_top:
 
         # Publisher init
-        setpoint_pub = rospy.Publisher("robot/pid/steering/setpoint", Float64, queue_size=10)
-        state_pub = rospy.Publisher("robot/pid/steering/state", Float64, queue_size=10)
-        enable_pub = rospy.Publisher("robot/pid/steering/enable", Bool, queue_size=10)
-
-        # Subscriber init
-        controlEffort_sub = rospy.Subscriber("robot/pid/steering/control_effort", Float64, get_pid_control, steering)
-
-        # Node init
-        rospy.init_node('pid_broadcaster', anonymous=True)
+        enable_pub = rospy.Publisher("robot/pid/steering/enable", Bool, queue_size=1)
+        setpoint_pub = rospy.Publisher("robot/pid/steering/setpoint", Float64, queue_size=1)
+        state_pub = rospy.Publisher("robot/pid/steering/state", Float64, queue_size=1)
 
         # enable PID controller
         pid_enable_msg = Bool()
@@ -64,12 +57,11 @@ def pid_broadcaster():
 
         # define setpoint by averaging initial position data
         distance = []
-        for i in range(1,50):
+        for i in range(50):
             distance.append(ir_bottom.get_position())
-            time.sleep(.01)
 
         # average of initial IR sensor data
-        setpoint = int(sum(distance) / float(len(distance)))
+        setpoint = sum(distance) / len(distance)
         setpoint_msg.data = setpoint
         setpoint_pub.publish(setpoint_msg)
         print "Setpoint = ",setpoint," cm"
@@ -77,6 +69,12 @@ def pid_broadcaster():
         # set forward speed
         offset = 300
         motor.set_target(CENTER + offset)
+
+        # Subscriber init
+        controlEffort_sub = rospy.Subscriber("robot/pid/steering/control_effort", Float64, get_pid_control, steering)
+
+        # Iterate at 100 Hz
+        rate = rospy.Rate(100)
 
         while not rospy.is_shutdown():
 
@@ -94,14 +92,20 @@ def pid_broadcaster():
             state_msg.data = position
             state_pub.publish(state_msg)
 
+<<<<<<< HEAD:nodes/ros_pid_official.py
             # what is this doing?
             time.sleep(0.01)
+=======
+            # Iterate at frequency of rate
+            rate.sleep()
+>>>>>>> 3595857ac7625fe5b182926d35d9d1b55dcf99b5:nodes/ros_pid_test.py
 
 
 if __name__ == '__main__':
+    # Node init
+    rospy.init_node('pid_broadcaster', anonymous=True)
+
     try:
-
         pid_broadcaster()
-
     except rospy.ROSInterruptException:
         pass
