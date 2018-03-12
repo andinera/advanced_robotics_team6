@@ -1,4 +1,0 @@
-<launch>
-    <node pkg="pid" type="controller" name="pid"/>
-    <node pkg="advanced_robotics_team6" type="shane_pid_test.py" name="odroid" output="screen"/>
-</launch>

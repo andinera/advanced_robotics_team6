@@ -11,18 +11,17 @@
         <param name="windup_limit" value="10" />
         <param name="cutoff_frequency" value="20" />
         <!-- Topic names -->
-        <param name="topic_from_controller" value="ir/bottom/pid/steering/control_effort" />
-        <param name="topic_from_plant" value="ir/bottom/pid/steering/state" />
-        <param name="setpoint_topic" value="ir/bottom/pid/steering/setpoint" />
-        <param name="pid_enable_topic" value="ir/bottom/pid/steering/enable" />
+        <param name="topic_from_controller" value="sensor/bottom_IR/pid/control_effort" />
+        <param name="topic_from_plant" value="sensor/bottom_IR/pid/state" />
+        <param name="setpoint_topic" value="sensor/bottom_IR/pid/setpoint" />
+        <param name="pid_enable_topic" value="sensor/bottom_IR/pid/enable" />
         <!-- Node name -->
         <param name="node_name" value="steering_pid" />
         <!-- Bounds for publishing and subscribing at 50 Hz -->
         <param name="max_loop_frequency" value="55.0" />
         <param name="min_loop_frequency" value="45.0" />
      </node>
-     
-     
+
     <node name="ir_top_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
         <param name="Kp" value="-1.0" />
@@ -35,10 +34,10 @@
         <param name="windup_limit" value="10" />
         <param name="cutoff_frequency" value="20" />
         <!-- Topic names -->
-        <param name="topic_from_controller" value="ir/top/pid/steering/control_effort" />
-        <param name="topic_from_plant" value="ir/top/pid/steering/state" />
-        <param name="setpoint_topic" value="ir/top/pid/steering/setpoint" />
-        <param name="pid_enable_topic" value="ir/top/pid/steering/enable" />
+        <param name="topic_from_controller" value="sensor/top_IR/pid/control_effort" />
+        <param name="topic_from_plant" value="sensor/top_IR/pid/state" />
+        <param name="setpoint_topic" value="sensor/top_IR/pid/setpoint" />
+        <param name="pid_enable_topic" value="sensor/top_IR/pid/enable" />
         <!-- Node name -->
         <param name="node_name" value="steering_pid" />
         <!-- Bounds for publishing and subscribing at 50 Hz -->
@@ -46,7 +45,7 @@
         <param name="min_loop_frequency" value="45.0" />
      </node>
 
-     <node pkg="advanced_robotics_team6" type="ros_pid_official.py" name="pid_broadcast" output="screen" />
+     <node pkg="advanced_robotics_team6" type="ros_pid_official.py" name="odroid_node" output="screen" />
 
     <!--
     <node name="servo_sim_node" pkg="pid" type="plant_sim" output="screen" >

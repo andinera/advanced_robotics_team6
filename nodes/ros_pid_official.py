@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
-from time import sleep
-from pololu import Controller
+
+from drivers.pololu import Controller
+# from drivers.dummy_pololu import Controller
 
 # import message types
 from std_msgs.msg import Float64
@@ -12,58 +13,85 @@ MIN = 4095
 MAX = 7905
 CENTER = 6000
 
-def get_pid_control(ctrl_msg, ir_controller):
+# Callback from PID control effort subscriber
+def pid_control_effort_callback(msg, controller):
+    control_effort = int(msg.data)
+    controller.pid_control_effort = control_effort
 
-    steering_cmd = int(ctrl_msg.data)
-    ir_controller.pid_control_effort = steering_cmd
-    print 'ctrl msg {}'.format(ctrl_msg.data)
+# Initialize PID communications
+def pid_init(sensor, controller):
 
-def ir_pid_init(ir, ir_controller):
-	# enable PID controller
-	ir_enable = "ir/{}/pid/steering/enable".format(ir)
-	enable_pub = rospy.Publisher(ir_enable, Bool, queue_size=1)
+	# Enable PID controller
+	pid_enable = "sensor/{}/pid/enable".format(sensor)
+	enable_pub = rospy.Publisher(pid_enable,
+	                             Bool,
+								 latch=True,
+								 queue_size=1)
 	pid_enable_msg = Bool()
 	pid_enable_msg.data = True
 	enable_pub.publish(pid_enable_msg)
 
-	# define setpoint by averaging initial position data
-	ir_setpoint = "ir/{}/pid/steering/setpoint".format(ir)
-	setpoint_pub = rospy.Publisher(ir_setpoint, Float64, queue_size=1)
+	# Define PID setpoint
+	# Take average of multiple sensor readings
+	pid_setpoint = "sensor/{}/pid/setpoint".format(sensor)
+	setpoint_pub = rospy.Publisher(pid_setpoint,
+	                               Float64,
+								   latch=True,
+	                               queue_size=1)
 	setpoint_msg = Float64()
-	distance = []
+	measurement = []
 	for i in range(50):
-		distance.append(ir_controller.get_position())
-	setpoint = sum(distance) / len(distance)
+		measurement.append(controller.get_position())
+	setpoint = sum(measurement) / len(measurement)
 	setpoint_msg.data = setpoint
+	# setpoint_msg.data = 100					# False data for dummy testing
 	setpoint_pub.publish(setpoint_msg)
-	print "Setpoint for ir_{} = {} cm".format(ir, setpoint)
-	
+	print "Setpoint for {} = {} cm".format(sensor, setpoint)
+
 	# Initialize steering state publisher
-	ir_state = "ir/{}/pid/steering/state".format(ir)
-	state_pub = rospy.Publisher(ir_state, Float64, queue_size=1)
+	pid_state = "sensor/{}/pid/state".format(sensor)
+	state_pub = rospy.Publisher(pid_state,
+	                            Float64,
+								latch=True,
+								queue_size=1)
 	state_msg = Float64()
 
 	# Initialize control effort subscriber
-	ir_control_effort = "ir/{}/pid/steering/control_effort".format(ir)
-	control_effort_sub = rospy.Subscriber(ir_control_effort, Float64, get_pid_control, ir_controller)
-	
-	return state_pub, state_msg, control_effort_sub
+	pid_control_effort = "sensor/{}/pid/control_effort".format(sensor)
+	control_effort_sub = rospy.Subscriber(pid_control_effort,
+	                                      Float64,
+                                          pid_control_effort_callback,
+										  controller)
 
+	return enable_pub, setpoint_pub, state_pub, state_msg, control_effort_sub
 
-def pid_odroid():
+def odroid():
 
 	# Initialize Pololu Controllers
-    with Controller(0) as steering, Controller(1) as motor, \
-         Controller(2) as ir_bottom, Controller(3) as ir_top:
-			 
-        ir_bottom_state_pub, ir_bottom_state_msg, ir_bottom_control_effort_sub = ir_pid_init('bottom', ir_bottom)
-        ir_top_state_pub, ir_top_state_msg, ir_top_control_effort_sub = ir_pid_init('bottom', ir_top)
+    with Controller(0) as steering,  \
+	     Controller(1) as motor,     \
+         Controller(2) as ir_bottom, \
+		 Controller(3) as ir_top:
 
-        # set zero intial velocity and steering
+        # Initialize publishers and subscriber for bottom IR sensor
+        ir_bottom_enable_pub,   \
+        ir_bottom_setpoint_pub, \
+        ir_bottom_state_pub,    \
+        ir_bottom_state_msg,    \
+        ir_bottom_control_effort_sub = pid_init('bottom_IR', ir_bottom)
+
+        # Initialize publishers and subscriber for top IR sensor
+        ir_top_enable_pub,    \
+        ir_top_setpoint_pub,  \
+        ir_top_state_pub,     \
+        ir_top_state_msg,     \
+        ir_top_control_effort_sub = pid_init('top_IR', ir_top)
+
+        # Set zero intial velocity and steering
         motor.set_target(CENTER)
         steering.set_target(CENTER)
-        
-        # set forward speed
+
+        # Set forward speed
         offset = 300
         motor.set_target(CENTER + offset)
 
@@ -72,10 +100,9 @@ def pid_odroid():
         # States most servos are designed for 50 Hz operation
         rate = rospy.Rate(50)
 
-        i = 1
         while not rospy.is_shutdown():
 
-            # get position reading from IR sesnor(s)
+            # Get measurement reading from sensor(s)
             ir_bottom_position = []
             ir_top_position = []
             for i in range(10):
@@ -86,33 +113,35 @@ def pid_odroid():
             ir_top_position = sum(ir_top_position) / int(len(ir_top_position))
             rospy.loginfo("Top IR Position:\t%f", ir_top_position)
 
-            # use heading data to correct position measurement
-            
-            # Reset IR controller control efforts to 0
+            # TODO: use heading data to correct position measurement
+
+            # Reset controller control efforts to 0
             ir_bottom.pid_control_effort = 0
             ir_top.pid_control_effort = 0
 
-            # Publish IR states to PIDs
+            # Publish sensor states to PIDs
             ir_bottom_state_msg.data = ir_bottom_position
             ir_bottom_state_pub.publish(ir_bottom_state_msg)
             ir_top_state_msg.data = ir_top_position
             ir_top_state_pub.publish(ir_top_state_msg)
 
-            # send position command to steering servo
-            #steering_cmd = (ir_bottom.pid_control_effort + ir_top.pid_control_effort) / 2
-            #rospy.loginfo("Position Command:\t%d", steering_cmd)
-            #steering.set_target(steering_cmd)
-
             # Iterate at frequency of rate
             rate.sleep()
-            i += 1
-            print 'test {}'.format(i)
+
+            # Send position command to steering servo
+            steering_cmd = (ir_bottom.pid_control_effort \
+			        + ir_top.pid_control_effort) / 2
+            steering_cmd += CENTER
+            rospy.loginfo("Position Command:\t%d", steering_cmd)
+            steering.set_target(steering_cmd)
+
 
 if __name__ == '__main__':
+    print
     # Node init
-    rospy.init_node('pid_odroid', anonymous=True)
+    rospy.init_node('odroid_node', anonymous=True)
 
     try:
-        pid_odroid()
+        odroid()
     except rospy.ROSInterruptException:
         pass
