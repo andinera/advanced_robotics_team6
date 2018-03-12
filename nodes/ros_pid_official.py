@@ -135,8 +135,10 @@ def odroid():
             rate.sleep()
 
             # Send position command to steering servo
-            steering_cmd = (ir_bottom.pid_control_effort            \
-                            + ir_top.pid_control_effort) / 2
+            steering_cmd = ir_bottom.pid_control_effort         # Only bottom IR sensor
+            # steering_cmd = ir_top.pid_control_effort          # Only top IR sensor
+            # steering_cmd = (ir_bottom.pid_control_effort      # Both IR sensors
+            #                 + ir_top.pid_control_effort) / 2
             steering_cmd += CENTER
             rospy.loginfo("Position Command:\t%d", steering_cmd)
             steering.set_target(steering_cmd)
