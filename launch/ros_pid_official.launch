@@ -1,4 +1,29 @@
 <launch>
+
+    <!-- Initialize IMU driver -->
+    <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
+    <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
+        args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
+        output="screen">
+        <remap from="imu/data_raw" to="imu/data/pre_tf"/>
+        <param name="period" value="8"/>
+    </node>
+
+    <!-- Initialize IMU data transform -->
+    <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />
+
+    <!-- Initialize madgwick filter -->
+    <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
+      <rosparam command="load" file="$(find hw03)/params/imu_filter_madgwick.yaml" />
+      <remap from="imu/data" to="robot/imu/data"/>
+    </node>
+
+    <!-- Initialize kalman filter -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+      <rosparam command="load" file="$(find hw03)/params/ekf_localization.yaml"/>
+    </node>
+
+    <!-- Initialize bottom IR PID -->
     <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
         <param name="Kp" value="-7.0" />
@@ -22,6 +47,7 @@
         <param name="min_loop_frequency" value="45.0" />
      </node>
 
+     <!-- Initialize top IR PID -->
     <node name="ir_top_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
         <param name="Kp" value="-1.0" />
@@ -47,25 +73,5 @@
 
      <node pkg="advanced_robotics_team6" type="ros_pid_official.py" name="odroid_node" output="screen" />
 
-    <!--
-    <node name="servo_sim_node" pkg="pid" type="plant_sim" output="screen" >
-      <param name="plant_order" value="2" />
-    </node> -->
 
-    <!--
-    <node name="setpoint_node" pkg="pid" type="setpoint_node" output="screen" >
-      <param name="setpoint_topic" value="robot/pid/steering/setpoint" />
-    </node>
-  -->
-
-
-    <!-- rqt_plot is a resource hog, so if you're seeing high CPU usage, don't launch rqt_plot  -->
-    <!--
-    <node name="rqt_plot" pkg="rqt_plot" type="rqt_plot"
-    args="/control_effort/data /state/data /setpoint/data" />
-
-    <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
-
-    <node name="rqt_robot_monitor" pkg="rqt_robot_monitor" type="rqt_robot_monitor" />
-  -->
 </launch>

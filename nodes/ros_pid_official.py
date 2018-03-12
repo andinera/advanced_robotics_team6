@@ -8,15 +8,25 @@ from drivers.pololu import Controller
 # import message types
 from std_msgs.msg import Float64
 from std_msgs.msg import Bool
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
 
 MIN = 4095
 MAX = 7905
 CENTER = 6000
 
 # Callback from PID control effort subscriber
-def pid_control_effort_callback(msg, controller):
-    control_effort = int(msg.data)
+def pid_control_effort_callback(data, controller):
+    control_effort = int(data.data)
     controller.pid_control_effort = control_effort
+
+# Callback from kalman filter subscriber
+def kalman_filter_callback(data):
+    x = data.pose.pose.orientation.x
+    y = data.pose.pose.orientation.y
+    z = data.pose.pose.orientation.z
+    w = data.pose.pose.orientation.w
+    angles = euler_from_quaternion([x, y, z, w])
 
 # Initialize PID communications
 def pid_init(sensor, controller):
@@ -90,6 +100,10 @@ def odroid():
         ir_top_state_pub,     \
         ir_top_state_msg,     \
         ir_top_control_effort_sub = pid_init('top_IR', ir_top)
+
+        kf_sub = rospy.Subscriber("odometry/filtered",
+                                              Odometry,
+                                              kalman_filter_callback)
 
         # Set zero intial velocity and steering
         motor.set_target(CENTER)
