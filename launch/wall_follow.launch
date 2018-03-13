@@ -27,6 +27,30 @@
       <rosparam command="load" file="$(find advanced_robotics_team6)/params/ekf_localization.yaml"/>
     </node>
     -->
+    <!-- Initialize IMU PID -->
+    <node name="imu_pid" pkg="pid" type="controller" output="screen" >
+        <!-- Kp, Ki, Kd should either all be positive or all be negative -->
+        <param name="Kp" value="-1.0" />
+        <param name="Ki" value="-0.0" />
+        <param name="Kd" value="0.0" />
+        <!-- [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905 -->
+        <param name="upper_limit" value="1905" />
+        <param name="lower_limit" value="-1905" />
+        <!-- Advanced parameters -->
+        <param name="windup_limit" value="10" />
+        <param name="cutoff_frequency" value="12" />
+        <!-- Topic names -->
+        <param name="topic_from_controller" value="odroid/IMU/pid/control_effort" />
+        <param name="topic_from_plant" value="odroid/IMU/pid/state" />
+        <param name="setpoint_topic" value="odroid/IMU/pid/setpoint" />
+        <param name="pid_enable_topic" value="odroid/IMU/pid/enable" />
+        <!-- Node name -->
+        <param name="node_name" value="imu_pid" />
+        <!-- Bounds for publishing and subscribing at 50 Hz -->
+        <param name="max_loop_frequency" value="55.0" />
+        <param name="min_loop_frequency" value="45.0" />
+     </node>
+     
     <!-- Initialize bottom IR PID -->
     <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
@@ -38,14 +62,14 @@
         <param name="lower_limit" value="-1905" />
         <!-- Advanced parameters -->
         <param name="windup_limit" value="10" />
-        <param name="cutoff_frequency" value="20" />
+        <param name="cutoff_frequency" value="12" />
         <!-- Topic names -->
-        <param name="topic_from_controller" value="sensor/bottom_IR/pid/control_effort" />
-        <param name="topic_from_plant" value="sensor/bottom_IR/pid/state" />
-        <param name="setpoint_topic" value="sensor/bottom_IR/pid/setpoint" />
-        <param name="pid_enable_topic" value="sensor/bottom_IR/pid/enable" />
+        <param name="topic_from_controller" value="odroid/bottom_IR/pid/control_effort" />
+        <param name="topic_from_plant" value="odroid/bottom_IR/pid/state" />
+        <param name="setpoint_topic" value="odroid/bottom_IR/pid/setpoint" />
+        <param name="pid_enable_topic" value="odroid/bottom_IR/pid/enable" />
         <!-- Node name -->
-        <param name="node_name" value="steering_pid" />
+        <param name="node_name" value="ir_bottom_pid" />
         <!-- Bounds for publishing and subscribing at 50 Hz -->
         <param name="max_loop_frequency" value="55.0" />
         <param name="min_loop_frequency" value="45.0" />
@@ -62,20 +86,20 @@
         <param name="lower_limit" value="-1905" />
         <!-- Advanced parameters -->
         <param name="windup_limit" value="10" />
-        <param name="cutoff_frequency" value="20" />
+        <param name="cutoff_frequency" value="12" />
         <!-- Topic names -->
-        <param name="topic_from_controller" value="sensor/top_IR/pid/control_effort" />
-        <param name="topic_from_plant" value="sensor/top_IR/pid/state" />
-        <param name="setpoint_topic" value="sensor/top_IR/pid/setpoint" />
-        <param name="pid_enable_topic" value="sensor/top_IR/pid/enable" />
+        <param name="topic_from_controller" value="odroid/top_IR/pid/control_effort" />
+        <param name="topic_from_plant" value="odroid/top_IR/pid/state" />
+        <param name="setpoint_topic" value="odroid/top_IR/pid/setpoint" />
+        <param name="pid_enable_topic" value="odroid/top_IR/pid/enable" />
         <!-- Node name -->
-        <param name="node_name" value="steering_pid" />
+        <param name="node_name" value="ir_top_pid" />
         <!-- Bounds for publishing and subscribing at 50 Hz -->
         <param name="max_loop_frequency" value="55.0" />
         <param name="min_loop_frequency" value="45.0" />
      </node>
 
-     <node pkg="advanced_robotics_team6" type="ros_pid_official.py" name="odroid_node" output="screen" />
+     <node pkg="advanced_robotics_team6" type="wall_follow.py" name="odroid_node" output="screen" />
 
 
 </launch>

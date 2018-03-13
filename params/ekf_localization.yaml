@@ -1,3 +1,5 @@
+
+# # # Standard parameters # # #
 frequency: 50
 sensor_timeout: 0.1
 two_d_mode: false
@@ -7,49 +9,75 @@ base_link_frame: imu
 world_frame: odom
 transform_time_offset: 0.0
 transform_timeout: 0.0
+# imu0
 imu0: robot/imu/data
 imu0_config: [false, false, false,
               true,  true,  true,
               false, false, false,
               true,  true,  true,
               true,  true,  true]
-imu0_queue_size: 10
+imu0_queue_size: 1
 imu0_differential: false
 imu0_relative: false
 imu0_remove_gravitational_acceleration: true
+# end imu0
+# if remove_gravitational_acceleration = true
+gravitational_acceleration: 9.80665
+# end if remove_gravitational_acceleration = true
+initial_state: [0, 0, 0,
+                0, 0, 0,
+                0, 0, 0,
+                0, 0, 0,
+                0, 0, 0]
 publish_tf: true
 publish_acceleration: false
 print_diagnostics: true
-# Advanced parameters
+# # # Advanced parameters # # #
 use_control: false
+# if use_control = true
 stamped_control: false
 control_timeout: 0.2
-control_config: [true, false, false, false, false, true]
-acceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 3.4]
-deceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 4.5]
-acceleration_gains: [0.8, 0.0, 0.0, 0.0, 0.0, 0.9]
-deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+control_config: [true, false, false,
+                 false, false, true]
+acceleration_limits: [1.3, 0.0, 0.0,
+                      0.0, 0.0, 3.4]
+deceleration_limits: [1.3, 0.0, 0.0,
+                      0.0, 0.0, 4.5]
+acceleration_gains: [0.8, 0.0, 0.0,
+                     0.0, 0.0, 0.9]
+deceleration_gains: [1.0, 0.0, 0.0,
+                     0.0, 0.0, 1.0]
+# end if use_control = true
+smooth_lagged_data: false
+# if smooth_lagged_data = true
+history_length: 0
+# end if smooth_lagged_data = true
+# imu0
 imu0_nodelay: false
-imu0_pose_rejection_threshold: 0.8
-imu0_twist_rejection_threshold: 0.8
+# imu0_pose_rejection_threshold: 0.8
+imu0_angular_velocity_rejection_threshold: 0.8
 imu0_linear_acceleration_rejection_threshold: 0.8
+imu0_twist_rejection_threshold: 0.8
+# end imu0
 debug: false
+# if debug = true
 debug_out_file: /path/to/debug/file.txt
-process_noise_covariance: [1e-1, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    1e-1, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    1e-1, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    1e-1, 0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    1e-1, 0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    1e-1, 0,    0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    1e-1, 0,    0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    1e-1, 0,    0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    1e-1, 0,     0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    1e-1,  0,     0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     1e-1,  0,     0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1e-1,  0,    0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-1, 0,    0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-1, 0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-1]
+# end if debug = true
+process_noise_covariance: [0.05, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0.05, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0.06, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0.03, 0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0.03, 0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0.06, 0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0.025, 0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0.025, 0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0.04, 0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0.01, 0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.01, 0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0.02, 0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.01, 0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.01, 0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.015]
 initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
                               0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
                               0,    0,    1e-9, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
@@ -65,3 +93,4 @@ initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]
+reset_on_time_jump: false

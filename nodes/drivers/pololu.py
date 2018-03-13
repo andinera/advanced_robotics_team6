@@ -27,8 +27,7 @@ class Controller:
     def __init__(self, channel=0, usb='/dev/ttyACM0'):
         Controller.usb = serial.Serial(usb)
         self.channel = channel
-        self.target = 6000
-        self.pid_control_effort = 200
+        self.target = 0
 
     # Required for using in conjunction with a "with" statement
     def __enter__(self):
@@ -40,7 +39,10 @@ class Controller:
 
     # This will close the usb port upon deleting this object
     def __del__(self):
-        self.set_target(6000)
+        if self.channel == 0:
+            self.set_target(6000)
+        elif self.channel == 1:
+            self.set_target(4095)
 
     # Pass servo target as an integer in the range [4095, 7905]
     # Center value is 6000
