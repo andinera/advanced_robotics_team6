@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
-from drivers import dummy_pololu
-from drivers import phidget
-import math
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
-IR_ANGLE = quaternion_from_euler(0, 0, 1)[3]
+import rospy
+from drivers import pololu
 
 if __name__ == '__main__':
-    y = 0
-    x = 0
-    for i in range(0, 90):
-        y += math.sin(math.radians(i))
-        x += math.cos(math.radians(i))
-    angle = math.atan2(y, x)
-    print math.degrees(angle)
+    with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
+        while not rospy.is_shutdown():
+            measurements_bottom = []
+            measurements_top = []
+            for i in range(10):
+                measurements_bottom.append(ir_bottom.get_position())
+                measurements_top.append(ir_top.get_position())
+                measurement_bottom = sum(measurements_bottom) / len(measurements_bottom)
+                measurement_top = sum(measurements_top) / len(measurements_top)
+                print "Bottom: {}".format(measurement_bottom)
+                print "Top: {}".format(measurement_top)
+                rospy.sleep(1)

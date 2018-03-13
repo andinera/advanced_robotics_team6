@@ -12,8 +12,9 @@ class Driver:
         self.imu = imu
         self.active = active
         self.ignore = False
-
+        self.setpoint = 0
         self.control_effort = 0
+        self.turning = False
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
@@ -75,14 +76,16 @@ class Driver:
         if self.sensor == "ir_top":
             setpoint_msg.data = Driver.ir_top_conversion(setpoint_msg.data, ir_angle)
         self.setpoint_pub.publish(setpoint_msg)
-        self.controller.setpoint = setpoint_msg.data
-        self.controller.state = setpoint_msg.data
+        self.setpoint = setpoint_msg.data
+        self.state.data = setpoint_msg.data
         print "Setpoint for {} = {} cm".format(self.sensor, setpoint_msg.data)
 
     # Initialize IMU setpoint
-    def imu_setpoint(self, imu_connected, dummy_imu_value):
+    def imu_setpoint(self, imu_connected, dummy_imu_value, setpoint=None):
         setpoint_msg = Float64()
-        if imu_connected:
+        if setpoint:
+            setpoint_msg.data = setpoint
+        elif imu_connected:
             while not rospy.is_shutdown():
                 angles = self.controller.angles
                 y = 0
@@ -96,8 +99,8 @@ class Driver:
         else:
             setpoint_msg.data = dummy_imu_value
         self.setpoint_pub.publish(setpoint_msg)
-        self.controller.setpoint = setpoint_msg.data
-        self.controller.state = setpoint_msg.data
+        self.setpoint = setpoint_msg.data
+        self.state.data = setpoint_msg.data
         print "Setpoint for {} = {} degrees".format(self.sensor, setpoint_msg.data)
 
     # Publish sensor state
@@ -117,7 +120,7 @@ class Driver:
                 y += math.sin(angle)
                 x += math.cos(angle)
             heading = math.atan2(y, x)
-            offset = imu.setpoint - heading
+            offset = self.setpoint - heading
         else:
             offset = 0
         return hypotenuse * math.cos(ir_angle - offset)
