@@ -24,15 +24,10 @@ def cal_callback(data):
 
 if __name__ == '__main__':
     rospy.init_node('imu_listener', anonymous=True)
-
-    rospy.wait_for_service('imu/calibrate')
+    pub = rospy.Publisher('imu/data_raw', Imu, quueue_size=1)
+    sub = rospy.Subscriber('imu/data/pre_tf', Imu, callback, pub)
+  
     try:
-        calibrate = rospy.ServiceProxy('imu/calibrate', Empty)
-        resp = calibrate()
-        rospy.sleep(1)
-    except rospy.ServiceException, e:
-        print 'IMU calibration failed.'
-
-    pub = rospy.Publisher('imu/data_raw', Imu, queue_size=1)
-    sub = rospy.Subscriber('imu/data/pre_tf', Imu, callback)
-    rospy.spin()
+        rospy.spin()
+    except rospy.ROSInterruptException, e:
+        print e

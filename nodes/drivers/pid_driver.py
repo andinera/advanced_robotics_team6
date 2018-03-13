@@ -15,6 +15,7 @@ class Driver:
         self.setpoint = 0
         self.control_effort = 0
         self.turning = False
+        self.angles = []
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
@@ -86,8 +87,10 @@ class Driver:
         if setpoint:
             setpoint_msg.data = setpoint
         elif imu_connected:
+            print 'test1'
             while not rospy.is_shutdown():
-                angles = self.controller.angles
+                angles = self.angles
+                print angles
                 y = 0
                 x = 0
                 for angle in angles:
@@ -98,6 +101,7 @@ class Driver:
                 break
         else:
             setpoint_msg.data = dummy_imu_value
+        print 'test 2{}'.format(setpoint_msg)
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
