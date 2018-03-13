@@ -1,6 +1,7 @@
 <launch>
 
     <!-- Initialize IMU driver -->
+    <!--
     <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
     <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
         args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
@@ -8,26 +9,29 @@
         <remap from="imu/data_raw" to="imu/data/pre_tf"/>
         <param name="period" value="8"/>
     </node>
-
+    -->
     <!-- Initialize IMU data transform -->
+    <!--
     <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />
-
+    -->
     <!-- Initialize madgwick filter -->
+    <!--
     <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
-      <rosparam command="load" file="$(find hw03)/params/imu_filter_madgwick.yaml" />
+      <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
       <remap from="imu/data" to="robot/imu/data"/>
     </node>
-
+    -->
     <!-- Initialize kalman filter -->
+    <!--
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-      <rosparam command="load" file="$(find hw03)/params/ekf_localization.yaml"/>
+      <rosparam command="load" file="$(find advanced_robotics_team6)/params/ekf_localization.yaml"/>
     </node>
-
+    -->
     <!-- Initialize bottom IR PID -->
     <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
         <param name="Kp" value="-7.0" />
-        <param name="Ki" value="-5.0" />
+        <param name="Ki" value="-3.0" />
         <param name="Kd" value="0.0" />
         <!-- [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905 -->
         <param name="upper_limit" value="1905" />
@@ -50,8 +54,8 @@
      <!-- Initialize top IR PID -->
     <node name="ir_top_pid" pkg="pid" type="controller" output="screen" >
         <!-- Kp, Ki, Kd should either all be positive or all be negative -->
-        <param name="Kp" value="-1.0" />
-        <param name="Ki" value="-0.0" />
+        <param name="Kp" value="-7.0" />
+        <param name="Ki" value="-3.0" />
         <param name="Kd" value="0.0" />
         <!-- [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905 -->
         <param name="upper_limit" value="1905" />

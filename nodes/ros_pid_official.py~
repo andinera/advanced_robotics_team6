@@ -153,7 +153,6 @@ def odroid():
             # Send position command to steering servo
             ir_bottom_control_effort = ir_bottom.pid_control_effort
             ir_top_control_effort = ir_top.pid_control_effort
-            controllers = 2
             if ir_bottom_control_effort == 2000:
                 ir_bottom_steering_cmd = 0
             else:
