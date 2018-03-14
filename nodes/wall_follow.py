@@ -5,7 +5,7 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 import math
 
-POLOLU_CONNECTED = True      # True if Pololu is connected
+POLOLU_CONNECTED = True     # True if Pololu is connected
 IMU_CONNECTED = True        # True if IMU is connected
 DUMMY_IR_VALUE = 100        # Dummy IR sensor value if pololu is not connected
 DUMMY_IMU_VALUE = 0         # Dummy IMU value if IMU is not connected
@@ -30,11 +30,22 @@ NUM_READINGS = 10               # Number of sensor readings per iteration
 IR_ANGLE = math.radians(39)     # Angle of top IR sensor counter-clockwise from x-axis
 
 IMU_THRESHOLD = math.radians(5)
-DOOR_THRESHOLD = 50
-CORNER_THRESHOLD = 500
-STATES_STORED = 1
+DOOR_THRESHOLD = 50             # will need to tune
+CORNER_THRESHOLD = 500          # will need to tune
+STATES_STORED = 1               # not currently being used
 
 def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
+
+    # General Questions:
+    # 1. Is this heuristic better written as a state-machine rather than an
+    #    if-elif-else structure? - Carl
+
+    # Suspected Failure Modes:
+    # 1. If ir_bottom_error OR ir_top_error is greater than DOOR_THRESHOLD at
+    #    the end of the IMU turn, this state-machine will not return to the
+    #    wall-following state, but instead will think that it has reached
+    #    another doorway. I think that this failure mode can be eliminted by
+    #    proper tuning of the IMU Cornering PID gains. - Carl
 
     # use setpoint error values for state switching logic
     ir_bottom_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
@@ -63,7 +74,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
 
     # STATE: Cornering - If cornering, ignore IR sensors and start IMU turn
     else:
-        # should run once only at start of turn
+        # should execute only once at start of IMU turn
         if not imu_pid.turning:
             print "ENTERING CORNER"
             imu_pid.turning = True
@@ -71,18 +82,22 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
             ir_bottom.ignore = True
             imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_VALUE, imu_pid.setpoint + math.radians(90))
 
-            # TODO: remap IMU PID gains to better suit cornering task
-            # Need 2 sets of IMU PID gains: wall-floowing & cornering
+            # TODO: remap IMU PID gains to better suit cornering task (aka "Gain Scheduling")
+            # Need 2 sets of IMU PID gains: wall-following & cornering
 
-        # should run during IMU turn
+        # should execute when IMU turn is completed
         elif imu_error < IMU_THRESHOLD:
             print "EXITING CORNER"
             imu_pid.turning = False
+
+            # TODO: set IMU PID gains back to wall-following gains
+
+        # executes during IMU turn
         else:
-            print "CORNERING"
+            print "CORNERING:\t",math.degrees(imu_pid.state.data),"\t",math.degrees(imu_error)
 
 
-    # Set steering command
+    # Set steering command as average of steering commands that we want to use
     i = 0
     steering_cmd = 0
     if not ir_top_pid.ignore:
