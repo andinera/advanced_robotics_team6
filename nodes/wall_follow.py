@@ -24,51 +24,55 @@ from drivers import pid_driver
 MIN = 4095
 MAX = 7905
 CENTER = 6000
-MOTOR_SPEED = 6300  # Motor input
-RATE = 50           # Iteration rate; 50 Hz based on Pololu documentation
-NUM_READINGS = 10   # Number of sensor readings per iteration
+MOTOR_SPEED = 6300              # Motor input
+RATE = 50                       # Iteration rate; 50 Hz based on Pololu documentation
+NUM_READINGS = 10               # Number of sensor readings per iteration
 IR_ANGLE = math.radians(39)     # Angle of top IR sensor counter-clockwise from x-axis
-IR_THRESHOLD = 10
-IMU_THRESHOLD = 0.1
 
+IMU_THRESHOLD = math.radians(5)
 DOOR_THRESHOLD = 50
 CORNER_THRESHOLD = 500
 STATES_STORED = 1
 
 def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
-    bottom_IR_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
-    top_IR_error = math.fabs(ir_top_pid.setpoint - ir_top_pid.state.data)
+
+    # use setpoint error values for state switching logic
+    ir_bottom_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
+    ir_top_error = math.fabs(ir_top_pid.setpoint - ir_top_pid.state.data)
     imu_error = math.fabs(imu_pid.setpoint - imu_pid.state.data)
-    
-    # If steadily following the setpoints
-    if (bottom_IR_error < DOOR_THRESHOLD and top_IR_error < DOOR_THRESHOLD) and not imu_pid.turning:
+
+    # STATE: Wall-Following - If tracking wall distance setpoint
+    if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and not imu_pid.turning:
         ir_top_pid.ignore = False
         ir_bottom_pid.ignore = False
-        imu_pid.turning = False
-    
-    # If crossing doorway
-    elif (bottom_IR_error < CORNER_THRESHOLD and top_IR_error < CORNER_THRESHOLD) and not imu_pid.turning:
+        # imu_pid.turning = False
+
+    # SATE: Doorway Crossing - If crossing doorway
+    elif (ir_bottom_error < CORNER_THRESHOLD and ir_top_error < CORNER_THRESHOLD) and not imu_pid.turning:
         # Top IR sensor detects doorway, ignore top IR sensor
-        if top_IR_error > DOOR_THRESHOLD:
+        if ir_top_error > DOOR_THRESHOLD:
             ir_top_pid.ignore = True
         # Top IR sensor is past doorway
         else:
             ir_top_pid.ignore = False
         # Bottom IR sensor detects doorway, ignore bottom IR sensor
-        if bottom_IR_error > DOOR_THRESHOLD:
+        if ir_bottom_error > DOOR_THRESHOLD:
             ir_bottom_pid.ignore = True
         else:
             ir_bottom_pid.ignore = False
-    
-    # If cornering, ignore IR sensors, start IMU turn
+
+    # STATE: Cornering - If cornering, ignore IR sensors and start IMU turn
     else:
-        # should run only at start of turn
+        # should run once only at start of turn
         if not imu_pid.turning:
             print "ENTERING CORNER"
             imu_pid.turning = True
             ir_top_pid.ignore = True
             ir_bottom.ignore = True
             imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_VALUE, imu_pid.setpoint + math.radians(90))
+
+            # TODO: remap IMU PID gains to better suit cornering task
+            # Need 2 sets of IMU PID gains: wall-floowing & cornering
 
         # should run during IMU turn
         elif imu_error < IMU_THRESHOLD:
@@ -77,7 +81,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
         else:
             print "CORNERING"
 
-   
+
     # Set steering command
     i = 0
     steering_cmd = 0
@@ -91,7 +95,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
         i += 1
         steering_cmd += imu_pid.control_effort
     steering_cmd /= i
-    
+
     return steering_cmd
 
 
@@ -125,7 +129,7 @@ def heuristic2(ir_bottom_pid, ir_top_pid, imu_pid):
             ir_bottom_pid.ignore = True
             imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_pid.setpoint + math.radians(90))
             imu_pid.turning = True
-   
+
     # Set steering command
     i = 0
     steering_cmd = 0
@@ -139,7 +143,7 @@ def heuristic2(ir_bottom_pid, ir_top_pid, imu_pid):
         i += 1
         steering_cmd += imu_pid.control_effort
     steering_cmd /= i
-    
+
     return steering_cmd
 
 # Estimate for distance of car to wall based on measurement from top IR sensor
@@ -267,7 +271,7 @@ def odroid():
                     steering_cmd = heuristic3(ir_bottom_pid,
                                              ir_top_pid,
                                              imu_pid)
-                                     
+
 
                 # Set steering target
                 steering_cmd += CENTER
