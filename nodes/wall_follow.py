@@ -10,8 +10,8 @@ IMU_CONNECTED = True        # True if IMU is connected
 DUMMY_IR_VALUE = 100        # Dummy IR sensor value if pololu is not connected
 DUMMY_IMU_VALUE = 0.01         # Dummy IMU value if IMU is not connected
 
-BOTTOM_IR = True
-TOP_IR = True
+BOTTOM_IR = False
+TOP_IR = False
 IMU = True
 
 if POLOLU_CONNECTED:
@@ -168,7 +168,7 @@ def heuristic():
 # and IMU heading
 def ir_top_conversion(hypotenuse, imu):
     if IMU:
-        states = imu.controller.states
+        states = imu.recorded_states
         y = 0
         x = 0
         for state in states:
@@ -178,7 +178,7 @@ def ir_top_conversion(hypotenuse, imu):
         offset = imu.setpoint - heading
     else:
         offset = 0
-    return hypotenuse * math.cos(IR_state - offset)
+    return hypotenuse * math.cos(IR_STATE - offset)
 
 # Callback from kalman filter subscriber
 def kalman_filter_callback(data, imu_pid):
@@ -202,9 +202,9 @@ def odroid():
          phidget.Controller() as imu:
 
          # Initialize PID drivers
-         with pid_driver.Driver("bottom_IR", ir_bottom, BOTTOM_IR, imu) as ir_bottom_pid,    \
-              pid_driver.Driver("top_IR", ir_top, TOP_IR, imu) as ir_top_pid,             \
-              pid_driver.Driver("IMU", imu, IMU) as imu_pid:
+         with pid_driver.Driver("bottom_IR", ir_bottom, BOTTOM_IR, imu, STATES_STORED) as ir_bottom_pid,    \
+              pid_driver.Driver("top_IR", ir_top, TOP_IR, imu, STATES_STORED) as ir_top_pid,             \
+              pid_driver.Driver("IMU", imu, IMU, STATES_STORED) as imu_pid:
 
             # Initialize subscriber for IMU
             kf_sub = rospy.Subscriber("odometry/filtered",
@@ -235,25 +235,25 @@ def odroid():
 
                 # Get measurement reading from sensor(s) and publish state
                 if BOTTOM_IR:
-                    ir_bottom_distance = []
+                    ir_bottom_pid.recorded_states = []
                     for i in range(NUM_READINGS):
-                        ir_bottom_distance.append(ir_bottom.get_position())
-                    ir_bottom_distance = sum(ir_bottom_distance)                   \
-                                         / float(len(ir_bottom_distance))
-                    rospy.loginfo("Bottom IR Distance:\t%f", ir_bottom_distance)
-                    ir_bottom_pid.publish_state(ir_bottom_distance)
+                        ir_bottom_pid.recorded_states.append(ir_bottom.get_position())
+                    state = sum(ir_bottom_pid.recorded_states)                   \
+                                         / float(len(ir_bottom_pid.recorded_states))
+                    rospy.loginfo("Bottom IR Distance:\t%f", state)
+                    ir_bottom_pid.publish_state(state)
 
                 if TOP_IR:
-                    ir_top_distance = []
+                    ir_top_pid.recorded_states = []
                     for i in range(NUM_READINGS):
-                        ir_top_distance.append(ir_top.get_position())
-                    ir_top_distance = ir_top_conversion(sum(ir_top_distance), imu_pid)      \
-                                      / float(len(ir_top_distance))
-                    rospy.loginfo("Top IR Distance:\t%f", ir_top_distance)
-                    ir_top_pid.publish_state(ir_top_distance)
+                        ir_top_pid.recorded_states.append(ir_top.get_position())
+                    state = ir_top_conversion(sum(ir_top_pid.recorded_states), imu_pid)      \
+                                      / float(len(ir_top_pid.recorded_states))
+                    rospy.loginfo("Top IR Distance:\t%f", state)
+                    ir_top_pid.publish_state(state)
 
                 if IMU:
-                    states = imu_pid.states
+                    states = imu_pid.recorded_states
                     y = 0
                     x = 0
                     for state in states:

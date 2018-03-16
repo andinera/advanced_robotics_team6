@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # import serial
-from random import uniform
+from random import randint
 
 ########### Example call file ###########
 # from __future__ import with_statement
@@ -119,8 +119,8 @@ class Controller:
         # Controller.usb.write(chr(0x90)+chr(self.channel))
         # least = ord(Controller.usb.read())
         # most = ord(Controller.usb.read())
-        least = uniform(0,254)
-        most = uniform(0,2)
+        least = randint(1,2)
+        most = randint(0,254)
         least = "{0:08b}".format(least)
         most = "{0:08b}".format(most)
         pos = "{}{}".format(most, least)

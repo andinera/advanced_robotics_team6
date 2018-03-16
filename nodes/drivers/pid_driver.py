@@ -6,7 +6,7 @@ import math
 
 class Driver:
     # Initialize PID communications
-    def __init__(self, sensor, controller, active, imu=None):
+    def __init__(self, sensor, controller, active, imu=None, num_states_stored=1):
         self.sensor = sensor            # Name of sensor
         self.controller = controller    # Related Pololu Controller
         self.imu = imu                  # Related IMU
@@ -15,6 +15,7 @@ class Driver:
         self.setpoint = 0               # PID setpoint
         self.control_effort = 0         # PID control effort
         self.turning = False            # Entering a corner
+        self.num_states_stored = num_states_stored        # Number of states to be saved
         self.reported_states = []       # Last n reported states
         self.recorded_states = []       # Last n recorded states
 
@@ -79,6 +80,9 @@ class Driver:
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
+        if len(self.reported_states) > self.num_states_stored:
+            del self.reported_states[0]
+        self.reported_states.append(setpoint_msg.data)
         print "Setpoint for {} = {} cm".format(self.sensor, setpoint_msg.data)
 
     # Initialize IMU setpoint
@@ -102,6 +106,9 @@ class Driver:
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
+        if len(self.reported_states) > self.num_states_stored:
+            del self.reported_states[0]
+        self.reported_states.append(setpoint_msg.data)
         print "Setpoint for {} = {} degrees".format(self.sensor, setpoint_msg.data)
 
     # Publish sensor state
