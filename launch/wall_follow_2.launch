@@ -11,16 +11,9 @@
 
     <!-- Initialize IMU data transform -->
     <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />
-
-    <!-- Initialize madgwick filter -->
-    <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
-      <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
-      <remap from="imu/data" to="robot/imu/data"/>
-    </node>
-
     <!-- Initialize kalman filter -->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-      <rosparam command="load" file="$(find advanced_robotics_team6)/params/ekf_localization.yaml"/>
+      <rosparam command="load" file="$(find advanced_robotics_team6)/params/ekf_localization_2.yaml"/>
     </node>
 
 
