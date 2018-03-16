@@ -5,7 +5,7 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 import math
 
-POLOLU_CONNECTED = False     # True if Pololu is connected
+POLOLU_CONNECTED = True     # True if Pololu is connected
 IMU_CONNECTED = True        # True if IMU is connected
 DUMMY_IR_VALUE = 100        # Dummy IR sensor value if pololu is not connected
 DUMMY_IMU_VALUE = 0.01         # Dummy IMU value if IMU is not connected
@@ -25,7 +25,7 @@ MIN = 4095
 MAX = 7905
 CENTER = 6000
 MOTOR_SPEED = 6300              # Motor input
-RATE = 1                       # Iteration rate; 50 Hz based on Pololu documentation
+RATE = 50                       # Iteration rate; 50 Hz based on Pololu documentation
 NUM_READINGS = 10               # Number of sensor readings per iteration
 IR_STATE = math.radians(39)     # Angle of top IR sensor counter-clockwise from x-axis
 
@@ -224,13 +224,14 @@ def odroid():
             # Set zero intial velocity and steering
             motor.set_target(CENTER)
             steering.set_target(CENTER)
-
+            rospy.sleep(1)
             # Set forward speed
             motor.set_target(MOTOR_SPEED)
 
             # Iteration rate
             rate = rospy.Rate(RATE)
 
+            turn_counter = 0
             while not rospy.is_shutdown():
 
                 # Get measurement reading from sensor(s) and publish state
@@ -253,6 +254,10 @@ def odroid():
                     ir_top_pid.publish_state(state)
 
                 if IMU:
+                    if turn_counter == 150:
+                        setpoint = imu_pid.setpoint - math.radians(90)
+                        imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, setpoint)
+                    turn_counter += 1
                     states = imu_pid.recorded_states
                     y = 0
                     x = 0
@@ -260,9 +265,9 @@ def odroid():
                         y += math.sin(state)
                         x += math.cos(state)
                     imu_heading = math.atan2(y, x)
-                    rospy.loginfo("IMU Heading:\t%f", imu_heading)
+                    rospy.loginfo("IMU Heading:\t%f", math.degrees(imu_heading))
                     imu_pid.publish_state(imu_heading)
-
+                    rospy.loginfo("IMU setpoint:\t%f", imu_pid.setpoint)
                 # Iterate at frequency of rate
                 rate.sleep()
 

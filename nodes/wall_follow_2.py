@@ -7,6 +7,8 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import math
 import PID        # Dummy IMU value if IMU is not connected
 import numpy as np
+from drivers import pololu
+from drivers import phidget
 MIN = 4095
 MAX = 7905
 CENTER = 6000
@@ -25,11 +27,9 @@ TPID = [-10, -3,-3]
 
 # Estimate for distance of car to wall based on measurement from top IR sensor
 # and IMU heading
-def ir_top_conversion(hypotenuse, orientation):
-    angles = orientation.angle
-    y = math.sin(angle)
-    x = math.cos(angle)
-    heading = math.atan2(y, x)
+def ir_top_conversion(hypotenuse, angle):
+    
+    x = math.cos(float(angle))
 
     return x
 
@@ -71,7 +71,7 @@ def odroid():
             turn = False
             use_top_ir = True
             use_bottom_ir = True
-            odometry = Odometry()
+            odometry = Odometry_Data()
             # Initialize subscriber for IMU
             kf_sub = rospy.Subscriber("odometry/filtered",
                                        Odometry,
@@ -111,7 +111,7 @@ def odroid():
 
                 #determine state we are in, wall, doorway, turn
                 bottom_IR_error = math.fabs(bottom_ir_state - target_distance)
-                top_IR_error = math.fabs(ir_top_conversion(top_ir_state, odometry.angle) - target_distance)
+                top_IR_error = math.fabs(ir_top_conversion(top_ir_state, odometry.angle()) - target_distance)
                 #if in turn and not done
                 if turn and turn_control_offset > STOP_TURN_OFFSET:
                     print "Continuing Turn"
