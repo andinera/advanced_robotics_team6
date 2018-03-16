@@ -5,7 +5,7 @@
     <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
         args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
         output="screen">
-        <!-- <remap from="imu/data_raw" to="imu/data/pre_tf"/> -->
+        <remap from="imu/data_raw" to="imu/data/pre_tf"/>
         <param name="period" value="8"/>
     </node>
 
@@ -13,10 +13,10 @@
     <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />
 
     <!-- Initialize madgwick filter -->
-    <!-- <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
+    <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
       <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
       <remap from="imu/data" to="robot/imu/data"/>
-    </node> -->
+    </node>
 
     <!-- Initialize kalman filter -->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">

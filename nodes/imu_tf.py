@@ -24,8 +24,8 @@ def cal_callback(data):
 
 if __name__ == '__main__':
     rospy.init_node('imu_listener', anonymous=True)
-    pub = rospy.Publisher('imu/tf_data', Imu, queue_size=1)
-    sub = rospy.Subscriber('imu/data_raw', Imu, callback, pub)
+    pub = rospy.Publisher('imu/data_raw', Imu, queue_size=1)
+    sub = rospy.Subscriber('imu/data/pre_tf', Imu, callback, pub)
 
     try:
         rospy.spin()
