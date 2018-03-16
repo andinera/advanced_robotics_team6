@@ -2,10 +2,11 @@
 
 import rospy
 from nav_msgs.msg import Odometry
-from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import math
 import PID        # Dummy IMU value if IMU is not connected
-
+import numpy as np
 MIN = 4095
 MAX = 7905
 CENTER = 6000
@@ -17,7 +18,7 @@ USE_ANGLE_RELATIONSHIP = True
 DOOR_THRESHOLD = 50             # will need to tune
 CORNER_THRESHOLD = 500          # will need to tune
 STATES_STORED = 1            # not currently being used
-
+STOP_TURN_OFFSET = 50
 WPID = [-10, -3,-3]
 TPID = [-10, -3,-3]
 
@@ -70,14 +71,22 @@ def odroid():
             turn = False
             use_top_ir = True
             use_bottom_ir = True
-            odometry = Odometry_Data()
+            odometry = Odometry()
             # Initialize subscriber for IMU
             kf_sub = rospy.Subscriber("odometry/filtered",
                                        Odometry,
                                        kalman_filter_callback,
                                        odometry)
             #initialize publisher
+            odom0_pub = rospy.Publisher("robot/odom0/data",Odometry,queue_size=10)
+            odom1_pub = rospy.Publisher("robot/odom1/data",Odometry,queue_size=10)
+            reset_pub = rospy.Publisher("set_pose",PoseWithCovarianceStamped,queue_size=1)
+            odom0 = Odometry()
+            odom1 = Odometry()
+            reset_msg = PoseWithCovarianceStamped()
             rospy.sleep(1)
+
+
 
             # Set setpoints for wall follow and turning PIDs
             target_distance = 150
@@ -103,62 +112,103 @@ def odroid():
                 #determine state we are in, wall, doorway, turn
                 bottom_IR_error = math.fabs(bottom_ir_state - target_distance)
                 top_IR_error = math.fabs(ir_top_conversion(top_ir_state, odometry.angle) - target_distance)
-                # If steadily following the setpoints
-                if bottom_IR_error < DOOR_THRESHOLD and top_IR_error < DOOR_THRESHOLD:
-                    if turn :
-                        kfangle = 0
-                        #reset angle to zero
-
-                    if not wall :
-                        wall = True
-                        doorway = False
-                        turn = False
-                # If crossing doorway
-                elif bottom_IR_error < CORNER_THRESHOLD and top_IR_error < CORNER_THRESHOLD:
-                    # Top IR sensor detects doorway, ignore top IR sensor
-                    if not doorway :
-                        wall = False
-                        doorway = True
-                        turn = False
-
-                    if top_IR_error > DOOR_THRESHOLD:
-                        use_top_ir = False
-                    # Top IR sensor is past doorway
-                    else:
-                        use_top_ir = True
-                    # Bottom IR sensor detects doorway, ignore bottom IR sensor
-                    if bottom_IR_error > DOOR_THRESHOLD:
-                        use_bottom_ir = False
-                    else:
-                        use_bottom_ir = True
-                # If cornering, ignore IR sensors, start IMU turn
+                #if in turn and not done
+                if turn and turn_control_offset > STOP_TURN_OFFSET:
+                    print "Continuing Turn"
                 else:
-                    # If starting a turn
-                    if not turn and bottom_ir_state > CORNER_THRESHOLD:
-                        wall = False
-                        doorway = False
-                        turn = True
+                    # If steadily following the setpoints
+                    if bottom_IR_error < DOOR_THRESHOLD and top_IR_error < DOOR_THRESHOLD:
+                        if turn :
+                            resetKF = true
+                            print "reseting KF"
+                        if not wall :
+                            wall = True
+                            doorway = False
+                            turn = False
+                            print "Starting Wall Follow"
+                                # If crossing doorway
+                    elif bottom_IR_error < CORNER_THRESHOLD and top_IR_error < CORNER_THRESHOLD:
+                        # Top IR sensor detects doorway, ignore top IR sensor
+                        if not doorway :
+                            wall = False
+                            doorway = True
+                            turn = False
+                            print "Starting doorway wall Follow"
+
+                            if top_IR_error > DOOR_THRESHOLD:
+                                use_top_ir = False
+                                print "Not using top IR"
+                                # Top IR sensor is past doorway
+                        else:
+                            use_top_ir = True
+                            # Bottom IR sensor detects doorway, ignore bottom IR sensor
+                        if bottom_IR_error > DOOR_THRESHOLD:
+                            use_bottom_ir = False
+                            print "Not using bottom IR"
+                        else:
+                            use_bottom_ir = True
+                # If cornering, ignore IR sensors, start IMU turn
+                    else:
+                        # If starting a turn
+                        if not turn and bottom_ir_state > CORNER_THRESHOLD:
+                            wall = False
+                            doorway = False
+                            turn = True
+                            print "Starting Turn"
 
 
                 #select which measurements to send
                 if wall and USE_ANGLE_RELATIONSHIP:
                     if (bottom_ir_state/top_ir_state - math.cos(IR_ANGLE))**2 < 1:
                         x_dist = bottom_ir_state * math.sqrt(1-(bottom_ir_state/top_ir_state - math.cos(IR_ANGLE))**2)
-                        angle = math.acos(-math.cos(IR_ANGLE) + bottom_ir_state/top_ir_state)
-                        #publish to KF and need to see if angle is offset by 90 degrees
+                        angle = math.acos(-math.cos(IR_ANGLE) + bottom_ir_state/top_ir_state) - math.pi
+                        if resetKF:
+                            reset_msg.header.stamp = rospy.Time.now()
+                            reset_msg.header.frame_id = "base_link"
+                            angles = quaternion_from_euler([0,0,angle])
+                            reset_msg.pose.pose.orientaion = angles
+                            reset_msg.pose.pose.position.x = x_dist
+                            reset_pub.publish(reset_msg)
 
-                    else :
+                        else:
+                            odom0.header.stamp = rospy.Time.now()
+                            odom0.header.frame_id = "base_link"
+                            odom0.pose.pose.position.x = x_dist
+                            angles = quaternion_from_euler([0,0,angle])
+                            odom0.pose.pose.orientaion = angles
+                            odom0_pub.publish(odom0)
+
+                    else:
                         x_dist = bottom_ir_state
+                        if resetKF:
+                            reset_msg.header.stamp = rospy.Time.now()
+                            reset_msg.header.frame_id = "base_link"
+                            reset_msg.pose.pose.position.x = x_dist
+                            reset_msg.pose.covariance = covariance
+                            reset_pub.publish(reset_msg)
+                        else :
+                            odom1.header.stamp = rospy.Time.now()
+                            odom1.header.frame_id = "base_link"
+                            odom1.pose.pose.position.x = x_dist
+                            odom1_pub.publish(odom1)
                         #publish to KF
                 if wall and not USE_ANGLE_RELATIONSHIP:
                     x_dist = bottom_IR
                 if doorway :
                     if use_bottom_ir :
                         x_dist = bottom_ir_state
+                        odom1.header.stamp = rospy.Time.now()
+                        odom1.header.frame_id = "base_link"
+                        odom1.pose.pose.position.x = x_dist
+                        odom1_pub.publish(odom1)
                         #publish to KF
                     elif use_top_ir :
                         x_dist = ir_top_conversion(top_ir_state,odometry)
                         #publish to KF
+                        odom1.header.stamp = rospy.Time.now()
+                        odom1.header.frame_id = "base_link"
+                        odom1.pose.pose.position.x = x_dist
+                        odom1_pub.publish(odom1)
                     #else publish nothing and it goes off imu automatically
 
 
@@ -170,7 +220,8 @@ def odroid():
                     control_effort = wall_pid.output + CENTER
                 else :
                     turn_pid.update(odometry.angle)
-                    control_effort = turn_pid.output + CENTER
+                    turn_control_offset = turn_pid.output
+                    control_effort = turn_control_offset + CENTER
                 #set control on servos
                 if control_effort > MAX:
                     steering.set_target(MAX)
@@ -185,6 +236,9 @@ def odroid():
                 # Set steering target
 
                 rospy.loginfo("Steering Command:\t%d", control_effort)
+                rospy.loginfo("x distance:\t%d",odometry.pose.pose.position.x)
+                rospy.loginfo("x distance:\t%d",odometry.twist.twist.linear.y)
+                resetKF = False
 
 
 if __name__ == '__main__':
