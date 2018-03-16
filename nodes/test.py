@@ -1,19 +1,23 @@
 #!/usr/bin/env python
 
-
 import rospy
-from drivers import pololu
+# from drivers import pololu
+from multiprocessing import Pool
+
+
+def hello(x):
+    print 'test2', x
 
 if __name__ == '__main__':
-    with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
-        while not rospy.is_shutdown():
-            measurements_bottom = []
-            measurements_top = []
-            for i in range(10):
-                measurements_bottom.append(ir_bottom.get_position())
-                measurements_top.append(ir_top.get_position())
-                measurement_bottom = sum(measurements_bottom) / len(measurements_bottom)
-                measurement_top = sum(measurements_top) / len(measurements_top)
-                print "Bottom: {}".format(measurement_bottom)
-                print "Top: {}".format(measurement_top)
-                rospy.sleep(1)
+    x = range(50)
+    print x
+    pool_one = Pool(1)
+    pool_two = Pool(1)
+    results_one=pool_one.map(hello, x)
+    results_two=pool_two.map(hello, x)
+    for i in range(50):
+        print 'test1: ', i
+    # pool_one.close()
+    # pool_one.join()
+    # pool_two.close()
+    # pool_two.join()

@@ -7,15 +7,16 @@ import math
 class Driver:
     # Initialize PID communications
     def __init__(self, sensor, controller, active, imu=None):
-        self.sensor = sensor
-        self.controller = controller
-        self.imu = imu
-        self.active = active
-        self.ignore = False
-        self.setpoint = 0
-        self.control_effort = 0
-        self.turning = False
-        self.angles = []
+        self.sensor = sensor            # Name of sensor
+        self.controller = controller    # Related Pololu Controller
+        self.imu = imu                  # Related IMU
+        self.active = active            # Sensor is running
+        self.ignore = False             # Ignore sensor
+        self.setpoint = 0               # PID setpoint
+        self.control_effort = 0         # PID control effort
+        self.turning = False            # Entering a corner
+        self.reported_states = []       # Last n reported states
+        self.recorded_states = []       # Last n recorded states
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
@@ -41,7 +42,6 @@ class Driver:
                                     latch=True,
                                     queue_size=1)
         self.state = Float64()
-        self.state.data = 0
 
         # Initialize control effort subscriber
         pid_control_effort = "odroid/{}/pid/control_effort".format(self.sensor)
@@ -64,18 +64,18 @@ class Driver:
         self.control_effort = int(data.data)
 
     # Initialize IR setpoint
-    def ir_setpoint(self, pololu_connected, num_readings, dummy_ir_value, ir_angle):
+    def ir_setpoint(self, pololu_connected, num_readings, dummy_ir_value, ir_state):
         setpoint_msg = Float64()
         if pololu_connected:
-            measurement = []
+            states = []
             for i in range(num_readings):
-                measurement.append(self.controller.get_position())
-            setpoint = sum(measurement) / float(len(measurement))
+                states.append(self.controller.get_position())
+            setpoint = sum(states) / float(len(states))
             setpoint_msg.data = setpoint
         else:
             setpoint_msg.data = dummy_ir_value
         if self.sensor == "ir_top":
-            setpoint_msg.data = Driver.ir_top_conversion(setpoint_msg.data, ir_angle)
+            setpoint_msg.data = Driver.ir_top_conversion(setpoint_msg.data, ir_state)
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
@@ -87,21 +87,18 @@ class Driver:
         if setpoint:
             setpoint_msg.data = setpoint
         elif imu_connected:
-            print 'test1'
             while not rospy.is_shutdown():
-                angles = self.angles
-                print angles
+                states = self.recorded_states
                 y = 0
                 x = 0
-                for angle in angles:
-                    y += math.sin(angle)
-                    x += math.cos(angle)
+                for state in states:
+                    y += math.sin(state)
+                    x += math.cos(state)
                 heading = math.atan2(y, x)
                 setpoint_msg.data = heading
                 break
         else:
             setpoint_msg.data = dummy_imu_value
-        print 'test 2{}'.format(setpoint_msg)
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
@@ -115,16 +112,16 @@ class Driver:
     # Estimate for distance of car to wall based on measurement from top IR sensor
     # and IMU heading
     @staticmethod
-    def ir_top_conversion(self, hypotenuse, ir_angle):
+    def ir_top_conversion(self, hypotenuse, ir_state):
         if self.active:
-            angles = self.imu.angles
+            states = self.imu.recorded_states
             y = 0
             x = 0
-            for angle in angles:
-                y += math.sin(angle)
-                x += math.cos(angle)
+            for state in states:
+                y += math.sin(state)
+                x += math.cos(state)
             heading = math.atan2(y, x)
             offset = self.setpoint - heading
         else:
             offset = 0
-        return hypotenuse * math.cos(ir_angle - offset)
+        return hypotenuse * math.cos(ir_state - offset)

@@ -5,13 +5,13 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 import math
 
-POLOLU_CONNECTED = True     # True if Pololu is connected
+POLOLU_CONNECTED = False     # True if Pololu is connected
 IMU_CONNECTED = True        # True if IMU is connected
 DUMMY_IR_VALUE = 100        # Dummy IR sensor value if pololu is not connected
-DUMMY_IMU_VALUE = 0         # Dummy IMU value if IMU is not connected
+DUMMY_IMU_VALUE = 0.01         # Dummy IMU value if IMU is not connected
 
-BOTTOM_IR = False
-TOP_IR = False
+BOTTOM_IR = True
+TOP_IR = True
 IMU = True
 
 if POLOLU_CONNECTED:
@@ -25,9 +25,9 @@ MIN = 4095
 MAX = 7905
 CENTER = 6000
 MOTOR_SPEED = 6300              # Motor input
-RATE = 50                       # Iteration rate; 50 Hz based on Pololu documentation
+RATE = 1                       # Iteration rate; 50 Hz based on Pololu documentation
 NUM_READINGS = 10               # Number of sensor readings per iteration
-IR_ANGLE = math.radians(39)     # Angle of top IR sensor counter-clockwise from x-axis
+IR_STATE = math.radians(39)     # Angle of top IR sensor counter-clockwise from x-axis
 
 IMU_THRESHOLD = math.radians(5)
 DOOR_THRESHOLD = 50             # will need to tune
@@ -161,21 +161,24 @@ def heuristic2(ir_bottom_pid, ir_top_pid, imu_pid):
 
     return steering_cmd
 
+def heuristic():
+    pass
+
 # Estimate for distance of car to wall based on measurement from top IR sensor
 # and IMU heading
 def ir_top_conversion(hypotenuse, imu):
     if IMU:
-        angles = imu.controller.angles
+        states = imu.controller.states
         y = 0
         x = 0
-        for angle in angles:
-            y += math.sin(angle)
-            x += math.cos(angle)
+        for state in states:
+            y += math.sin(state)
+            x += math.cos(state)
         heading = math.atan2(y, x)
         offset = imu.setpoint - heading
     else:
         offset = 0
-    return hypotenuse * math.cos(IR_ANGLE - offset)
+    return hypotenuse * math.cos(IR_state - offset)
 
 # Callback from kalman filter subscriber
 def kalman_filter_callback(data, imu_pid):
@@ -183,12 +186,10 @@ def kalman_filter_callback(data, imu_pid):
     y = data.pose.pose.orientation.y
     z = data.pose.pose.orientation.z
     w = data.pose.pose.orientation.w
-    angles = euler_from_quaternion([x, y, z, w])
-    if len(imu_pid.angles) < NUM_READINGS:
-        imu_pid.angles.append(angles[2])
-    else:
-        del imu_pid.angles[0]
-        imu_pid.angles.append(angles[2])
+    states = euler_from_quaternion([x, y, z, w])
+    if len(imu_pid.recorded_states) > NUM_READINGS:
+        del imu_pid.recorded_states[0]
+    imu_pid.recorded_states.append(states[2])
 
 # Main method
 def odroid():
@@ -216,9 +217,9 @@ def odroid():
             if IMU:
                 imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE)
             if BOTTOM_IR:
-                ir_bottom_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_ANGLE)
+                ir_bottom_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_STATE)
             if TOP_IR:
-                ir_top_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_ANGLE)
+                ir_top_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_STATE)
 
             # Set zero intial velocity and steering
             motor.set_target(CENTER)
@@ -252,12 +253,12 @@ def odroid():
                     ir_top_pid.publish_state(ir_top_distance)
 
                 if IMU:
-                    angles = imu.angles
+                    states = imu_pid.states
                     y = 0
                     x = 0
-                    for angle in angles:
-                        y += math.sin(angle)
-                        x += math.cos(angle)
+                    for state in states:
+                        y += math.sin(state)
+                        x += math.cos(state)
                     imu_heading = math.atan2(y, x)
                     rospy.loginfo("IMU Heading:\t%f", imu_heading)
                     imu_pid.publish_state(imu_heading)
@@ -283,7 +284,7 @@ def odroid():
                     steering_cmd = (ir_top_pid.control_effort + \
                                     imu_pid.control_effort) / 2
                 else:
-                    steering_cmd = heuristic3(ir_bottom_pid,
+                    steering_cmd = heuristic2(ir_bottom_pid,
                                              ir_top_pid,
                                              imu_pid)
 

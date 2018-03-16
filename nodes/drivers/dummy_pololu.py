@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # import serial
+from random import uniform
 
 ########### Example call file ###########
 # from __future__ import with_statement
@@ -118,8 +119,8 @@ class Controller:
         # Controller.usb.write(chr(0x90)+chr(self.channel))
         # least = ord(Controller.usb.read())
         # most = ord(Controller.usb.read())
-        least = 0
-        most = 0
+        least = uniform(0,254)
+        most = uniform(0,2)
         least = "{0:08b}".format(least)
         most = "{0:08b}".format(most)
         pos = "{}{}".format(most, least)
@@ -130,7 +131,7 @@ class Controller:
             pos = 3212000000*pos**3 - 17229000*pos**2 + 129560*pos - 117.11
         else:
             pos = 0
-        return 150
+        return pos
 
     # Example call
     # Controller.get_moving_state()

@@ -7,7 +7,7 @@ from std_srvs.srv import Empty
 
 
 def callback(data, pub):
-    tf_data = Imu()
+    tf_data = data
     tf_data.header = data.header
     tf_data.angular_velocity.x = data.angular_velocity.y
     tf_data.angular_velocity.y = data.angular_velocity.x
@@ -24,9 +24,9 @@ def cal_callback(data):
 
 if __name__ == '__main__':
     rospy.init_node('imu_listener', anonymous=True)
-    pub = rospy.Publisher('imu/data_raw', Imu, quueue_size=1)
-    sub = rospy.Subscriber('imu/data/pre_tf', Imu, callback, pub)
-  
+    pub = rospy.Publisher('imu/tf_data', Imu, queue_size=1)
+    sub = rospy.Subscriber('imu/data_raw', Imu, callback, pub)
+
     try:
         rospy.spin()
     except rospy.ROSInterruptException, e:

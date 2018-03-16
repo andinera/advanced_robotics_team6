@@ -1,6 +1,6 @@
 
 # # # Standard parameters # # #
-frequency: 50
+frequency: 500
 sensor_timeout: 0.1
 two_d_mode: true
 map_frame: map
@@ -10,9 +10,9 @@ world_frame: odom
 transform_time_offset: 0.0
 transform_timeout: 0.0
 # imu0
-imu0: robot/imu/data
+imu0: imu/tf_data
 imu0_config: [false, false, false,
-              true,  true,  true,
+              false,  false,  false,
               false, false, false,
               true,  true,  true,
               true,  true,  true]
