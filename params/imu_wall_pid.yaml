@@ -1,0 +1,21 @@
+
+# Kp, Ki, Kd should either all be positive or all be negative
+Kp: -6250.0
+Ki: -0.0
+Kd: -1000.0
+# [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905
+upper_limit: 1905
+lower_limit: -1905
+# Advanced parameters
+windup_limit: 10
+cutoff_frequency: 12
+# Topic names
+topic_from_controller: odroid/IMU_WALL/pid/control_effort
+topic_from_plant: odroid/IMU_WALL/pid/state
+setpoint_topic: odroid/IMU_WALL/pid/setpoint
+pid_enable_topic: odroid/IMU_WALL/pid/enable
+# Node name
+node_name: imu_wall_pid
+# Bounds for publishing and subscribing at 50 Hz
+max_loop_frequency: 55.0
+min_loop_frequency: 45.0

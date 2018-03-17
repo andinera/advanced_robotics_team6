@@ -16,8 +16,8 @@ class Driver:
         self.control_effort = 0         # PID control effort
         self.turning = False            # Entering a corner
         self.num_states_stored = num_states_stored        # Number of states to be saved
-        self.reported_states = []       # Last n reported states
-        self.recorded_states = []       # Last n recorded states
+        self.reported_states = []       # Last states sent to the Kalman filter
+        self.recorded_states = []       # Last states measured by IMU
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)

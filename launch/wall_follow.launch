@@ -27,33 +27,14 @@
     </node>
 
     <!-- Initialize IMU PID -->
-    <node name="imu_pid" pkg="pid" type="controller" output="screen" >
-        <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_pid.yaml"/>
+    <node name="imu_wall_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_wall_pid.yaml"/>
      </node>
 
     <!-- Initialize CORNERING IMU PID -->
     <node name="imu_corner_pid" pkg="pid" type="controller" output="screen" >
-        <!-- Kp, Ki, Kd should either all be positive or all be negative -->
-        <param name="Kp" value="-6250.0" />
-        <param name="Ki" value="-0.0" />
-        <param name="Kd" value="-1000.0" />
-        <!-- [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905 -->
-        <param name="upper_limit" value="1905" />
-        <param name="lower_limit" value="-1905" />
-        <!-- Advanced parameters -->
-        <param name="windup_limit" value="10" />
-        <param name="cutoff_frequency" value="12" />
-        <!-- Topic names -->
-        <param name="topic_from_controller" value="odroid/IMU/pid/control_effort" />
-        <param name="topic_from_plant" value="odroid/IMU/pid/state" />
-        <param name="setpoint_topic" value="odroid/IMU/pid/setpoint" />
-        <param name="pid_enable_topic" value="odroid/IMU/pid/enable" />
-        <!-- Node name -->
-        <param name="node_name" value="imu_corner_pid" />
-        <!-- Bounds for publishing and subscribing at 50 Hz -->
-        <param name="max_loop_frequency" value="55.0" />
-        <param name="min_loop_frequency" value="45.0" />
-     </node>
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_corner_pid.yaml"/>
+    </node>
 
     <!-- Initialize bottom IR PID -->
     <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >

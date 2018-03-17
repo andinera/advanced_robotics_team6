@@ -1,6 +1,6 @@
 
 # Status of device being connected
-pololu_connected: false
+pololu_connected: true
 imu_connected: true
 # Dummy sensor input if no device input
 dummy_ir_value: 100
