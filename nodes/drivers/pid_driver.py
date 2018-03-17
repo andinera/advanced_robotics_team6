@@ -80,7 +80,7 @@ class Driver:
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
-        if len(self.reported_states) > self.num_states_stored:
+        if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(setpoint_msg.data)
         print "Setpoint for {} = {} cm".format(self.sensor, setpoint_msg.data)
@@ -106,10 +106,10 @@ class Driver:
         self.setpoint_pub.publish(setpoint_msg)
         self.setpoint = setpoint_msg.data
         self.state.data = setpoint_msg.data
-        if len(self.reported_states) > self.num_states_stored:
+        if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(setpoint_msg.data)
-        print "Setpoint for {} = {} degrees".format(self.sensor, setpoint_msg.data)
+        print "Setpoint for {} = {} degrees".format(self.sensor, math.degrees(setpoint_msg.data))
 
     # Publish sensor state
     def publish_state(self, state):

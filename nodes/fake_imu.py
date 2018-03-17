@@ -5,7 +5,6 @@ from sensor_msgs.msg import Imu, MagneticField
 from random import uniform
 
 
-
 if __name__ == '__main__':
     rospy.init_node('imu_listener', anonymous=True)
     pub_data = rospy.Publisher('imu/data_raw', Imu, latch=True, queue_size=1)
