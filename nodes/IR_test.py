@@ -6,7 +6,7 @@ from drivers import pololu
 import csv
 import math as m
 
-write_data = True
+write_data = False
 
 rospy.init_node('ir_test')
 
@@ -17,7 +17,7 @@ if write_data:
 with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
     rate = rospy.Rate(10)
     i = 0
-    while not rospy.is_shutdown() and i < 50:
+    while not rospy.is_shutdown():
         data_top = ir_top.get_position()
         data_bottom = ir_bottom.get_position()
         pos = data_bottom

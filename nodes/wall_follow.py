@@ -473,7 +473,7 @@ def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
 # Estimate for distance of car to wall based on measurement from top IR sensor
 # and IMU heading
 def ir_top_conversion(hypotenuse, imu):
-    if IMU:
+    if IMU_WALL:
         states = imu.recorded_states
         y = 0
         x = 0
@@ -513,8 +513,8 @@ def odroid():
          # Initialize PID drivers
          with pid_driver.Driver("bottom_IR", ir_bottom, BOTTOM_IR, imu, STATES_STORED) as ir_bottom_pid,    \
               pid_driver.Driver("top_IR", ir_top, TOP_IR, imu, STATES_STORED) as ir_top_pid,             \
-              pid_driver.Driver("IMU_WALL", imu, IMU, STATES_STORED) as imu_wall_pid,                       \
-              pid_driver.Driver("IMU_CORNER", imu, IMU, STATES_STORED) as imu_corner_pid:
+              pid_driver.Driver("IMU_WALL", imu, IMU_WALL, STATES_STORED) as imu_wall_pid,                       \
+              pid_driver.Driver("IMU_CORNER", imu, IMU_CORNER, STATES_STORED) as imu_corner_pid:
 
             robot = {"state": "wall_follow"}
 
@@ -525,11 +525,16 @@ def odroid():
                                        imu_wall_pid)
 
             # Send setpoints to PIDs
-            if IMU:
+            if IMU_WALL:
                 # Wait for recorded IMU data before publishing setpoint
                 rospy.sleep(0.25)
                 imu_wall_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE)
                 imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_wall_pid.setpoint)
+                rospy.wait_for_service('imu/calibrate')
+                try:
+                    rospy.ServiceProxy('imu/calibrate', Empty)
+                except rospy.ServiceException, e:
+                    print "Service call failed: %s"%e
             if BOTTOM_IR:
                 ir_bottom_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_STATE)
             if TOP_IR:
@@ -538,7 +543,8 @@ def odroid():
             # Set zero intial velocity and steering
             motor.set_target(CENTER)
             steering.set_target(CENTER)
-
+            rospy.sleep(0.1)
+            
             # Set forward speed
             motor.set_target(MOTOR_SPEED)
 
@@ -567,7 +573,7 @@ def odroid():
                     rospy.loginfo("Top IR Distance:\t%f", state)
                     ir_top_pid.publish_state(state)
 
-                if IMU:
+                if IMU_WALL:
                     #if count == 150:
                         #setpoint = imu_pid.setpoint - math.radians(90)
                         #imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, setpoint)
@@ -606,7 +612,7 @@ def odroid():
                 print
 
                 # Kill command
-                if ir_top_pid.recorded_states[-1] <= 25:
+                if ir_top_pid.recorded_states[-1] <= 65:
                     break
 
 if __name__ == '__main__':
