@@ -16,88 +16,108 @@ def test_imus(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
 
 def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
 
-        # define setpoint error values for state switching logic
-        ir_bottom_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
-        ir_top_error = math.fabs(ir_top_pid.setpoint - ir_top_pid.state.data)
-        imu_error = math.fabs(imu_pid.setpoint - imu_pid.state.data)
+    # define setpoint error values for state switching logic
+    ir_bottom_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
+    ir_top_error = math.fabs(ir_top_pid.setpoint - ir_top_pid.state.data)
+    imu_error = math.fabs(imu_pid.setpoint - imu_pid.state.data)
 
-        # finite differencing on state to estimate derivative (divide by timestep?)
-        ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_state)
-        ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_state)
-        imu_diff = math.fabs(imu_pid.state.data - imu_state)
+    # finite differencing on state to estimate derivative (divide by timestep?)
+    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_state)
+    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_state)
+    imu_diff = math.fabs(imu_pid.state.data - imu_state)
 
-        rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
-        rospy.loginfo("Top IR Error:\t%f", ir_top_error)
-        rospy.loginfo("IMU Error:\t%f", imu_error)
+    rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
+    rospy.loginfo("Top IR Error:\t%f", ir_top_error)
+    rospy.loginfo("IMU Error:\t%f", imu_error)
 
+    if robot["state"] == 'wall_follow':
+        # either top or bottom IR has detected doorway
+        if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
+            (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
 
-        if robot["state"] == 'wall_follow':
-            # either top or bottom IR has detected doorway
-            if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
-                (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
-
-                # ignore IR sensor that has detected doorway
-                if ir_bottom_diff > DOOR_THRESHOLD:
-                    ir_bottom_pid.ignore = True
-                if ir_top_diff > DOOR_THRESHOLD:
-                    ir_top_pid.ignore = True
-
-                robot["state"] = 'doorway'
-
-            # either top or bottom IR has detected corner
-            elif ir_bottom_diff > DOOR_THRESHOLD or ir_top_diff > DOOR_THRESHOLD:
+            # ignore IR sensor that has detected doorway
+            if ir_bottom_diff > DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = True
-                ir_top_pid.ignore = True
-                imu_pid.ignore = True
-
-                imu_corner_pid = False
-
-                # reset IMU setpoint for cornering task
-                imu_setpoint = imu_pid.setpoint - math.radians(90)
-                imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
-                imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
-                robot["state"] = 'corner'
-
-            else:
-                pass
-                # do nothing: continue wall-following
-
-        elif robot["state"] == 'doorway':
-            if ir_bottom_error > DOOR_THRESHOLD:
-                ir_bottom_pid.ignore = True
-            if ir_top_error > DOOR_THRESHOLD:
+            if ir_top_diff > DOOR_THRESHOLD:
                 ir_top_pid.ignore = True
 
-            # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
-            # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
-            # switching to the 'doorway' state is currently based on the abs value of the error derivative
-            if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
+            # use imu wall-following PID controller
+            imu_wall_pid.ignore = False
+            robot["state"] = 'doorway'
+
+        # either top or bottom IR has detected corner
+        elif ir_bottom_diff > DOOR_THRESHOLD or ir_top_diff > DOOR_THRESHOLD:
+            ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            imu_wall_pid.ignore = True
+
+            imu_corner_pid = False
+
+            # reset IMU setpoint for cornering task
+            imu_setpoint = imu_pid.setpoint - math.radians(90)
+            imu_wall_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
+            imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
+            robot["state"] = 'corner'
+
+        else:
+            pass
+            # do nothing: continue wall-following
+
+    elif robot["state"] == 'doorway':
+        if ir_bottom_error > DOOR_THRESHOLD:
+            ir_bottom_pid.ignore = True
+        if ir_top_error > DOOR_THRESHOLD:
+            ir_top_pid.ignore = True
+
+        # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
+        # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
+        # switching to the 'doorway' state is currently based on the abs value of the error derivative
+        if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
+            ir_bottom_pid.ignore = False
+            ir_top_pid.ignore = False
+            imu_wall_pid.ignore = True
+
+            robot["state"] = 'wall_follow'
+
+    elif["state"] =='corner':
+        if imu_corner_error < IMU_THRESHOLD:
+            print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
+
+            # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD)
+            if ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
+                # turn IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
+                imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
+                imu_corner_pid.ignore = True
 
                 robot["state"] = 'wall_follow'
 
-        elif["state"] =='corner':
-            if imu_corner_error < IMU_THRESHOLD:
-                print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
-
-                # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD)
-                if ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
-                    # turn IR PID control back on
-                    ir_bottom_pid.ignore = False
-                    ir_top_pid.ignore = False
-                    imu_pid.ignore = False      # may not want to use imu_pid to do wall-following
-                    imu_corner_pid.ignore = True
-
-                    robot["state"] = 'wall_follow'
-
-            else:
-                # log imu_corner_pid state and setpoint error during turn
-                rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_pid.state.data), math.degrees(imu_error)))
-
         else:
-            print "Entered default case in state machine."
+            # log imu_corner_pid state and setpoint error during turn
+            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_pid.state.data), math.degrees(imu_error)))
 
+    else:
+        print "Entered default case in state machine."
+
+    # Set steering command as average of steering commands that we want to use
+    i = 0
+    steering_cmd = 0
+    if not ir_top_pid.ignore and TOP_IR:
+        i += 1
+        steering_cmd += ir_top_pid.control_effort
+    if not ir_bottom_pid.ignore and BOTTOM_IR:
+        i += 1
+        steering_cmd += ir_bottom_pid.control_effort
+    if not imu_wall_pid.ignore and IMU_WALL_PID:
+        i += 1
+        steering_cmd += imu_pid.control_effort
+    if not imu_corner_pid.ignore and IMU_PID:
+        i += 1
+        steering_cmd += imu_pid.control_effort
+    steering_cmd /= i
+
+    return steering_cmd
 
 def heuristic4(ir_bottom_pid,ir_top_pid,imu_pid,ir_bottom_state,ir_top_state,imu_state):
 
@@ -570,27 +590,13 @@ def odroid():
                 # Iterate at frequency of rate
                 rate.sleep()
 
-                if not IMU and not TOP_IR:
-                    steering_cmd = ir_bottom_pid.control_effort
-                elif not IMU and not BOTTOM_IR:
-                    steering_cmd = ir_top_pid.control_effort
-                elif True:
-                    steering_cmd = test_imus(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-                elif not IMU:
-                    steering_cmd = (ir_bottom_pid.control_effort + \
-                                   ir_top_pid.control_effort) / 2
-                elif not TOP_IR:
-                    steering_cmd = (ir_bottom_pid.control_effort + \
-                                    imu_wall_pid.control_effort) / 2
-                elif not BOTTOM_IR:
-                    steering_cmd = (ir_top_pid.control_effort + \
-                                    imu_wall_pid.control_effort) / 2
-                else:
-                    # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
-                    # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
-                    #                           ir_bottom_state,ir_top_state,imu_state)
-                    # steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_pid, imu_corner_pid)
-                    pass
+                steering_cmd = test_imus(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+
+                # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
+                # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
+                #                           ir_bottom_state,ir_top_state,imu_state)
+                # steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_pid, imu_corner_pid)
+
                 count += 1
 
                 # Set steering target
@@ -620,7 +626,8 @@ if __name__ == '__main__':
     DUMMY_IMU_VALUE = rospy.get_param('~dummy_imu_value')
     BOTTOM_IR = rospy.get_param('~bottom_ir')
     TOP_IR = rospy.get_param('~top_ir')
-    IMU = rospy.get_param('~imu')
+    IMU_WALL = rospy.get_param('~imu_wall')
+    IMU_CORNER = rospy.get_param('~imu_corner')
     MIN = rospy.get_param('~min')
     MAX = rospy.get_param('~max')
     CENTER = rospy.get_param('~center')

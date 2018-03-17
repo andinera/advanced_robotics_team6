@@ -8,7 +8,8 @@ dummy_imu_value: 0.01
 # Utilize sensor input
 bottom_ir: true
 top_ir: true
-imu: true
+imu_wall: true
+imu_corner: true
 # Sensor position values
 min: 4095
 max: 7905
