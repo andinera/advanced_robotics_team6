@@ -81,7 +81,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
             if imu_corner_error < IMU_THRESHOLD:
                 print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
-                # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD) 
+                # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD)
                 if ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
                     # turn IR PID control back on
                     ir_bottom_pid.ignore = False
@@ -90,14 +90,14 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
                     imu_corner_pid.ignore = True
 
                     robot["state"] = 'wall_follow'
- 
+
             else:
                 # log imu_corner_pid state and setpoint error during turn
                 rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_pid.state.data), math.degrees(imu_error)))
-        
+
         else:
             print "Entered default case in state machine."
-            
+
 
 def heuristic4(ir_bottom_pid,ir_top_pid,imu_pid,ir_bottom_state,ir_top_state,imu_state):
 
@@ -129,7 +129,7 @@ def heuristic4(ir_bottom_pid,ir_top_pid,imu_pid,ir_bottom_state,ir_top_state,imu
     # SATE: Doorway Crossing - If crossing doorway
     elif (ir_bottom_diff < CORNER_THRESHOLD and ir_top_diff < CORNER_THRESHOLD) and not imu_pid.turning:
         print "PASSING DOORWAY"
-        
+
         # Top IR sensor detects doorway, ignore top IR sensor
         if ir_top_error > DOOR_THRESHOLD:
             ir_top_pid.ignore = True
@@ -147,7 +147,7 @@ def heuristic4(ir_bottom_pid,ir_top_pid,imu_pid,ir_bottom_state,ir_top_state,imu
         # should execute only once at start of IMU turn
         if not imu_pid.turning:
             print "ENTERING CORNER"
-            
+
             imu_pid.turning = True
             ir_top_pid.ignore = True
             ir_bottom_pid.ignore = True
@@ -159,7 +159,7 @@ def heuristic4(ir_bottom_pid,ir_top_pid,imu_pid,ir_bottom_state,ir_top_state,imu
         # should execute when IMU turn is completed
         elif imu_error < IMU_THRESHOLD and ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
             print "EXITING CORNER"
-            imu_pid.turning = False 
+            imu_pid.turning = False
 
             # TODO: set IMU PID gains back to wall-following gains
 
@@ -220,7 +220,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
     # SATE: Doorway Crossing - If crossing doorway
     elif (ir_bottom_error < CORNER_THRESHOLD and ir_top_error < CORNER_THRESHOLD) and not imu_pid.turning:
         print "PASSING DOORWAY"
-        
+
         # Top IR sensor detects doorway, ignore top IR sensor
         if ir_top_error > DOOR_THRESHOLD:
             ir_top_pid.ignore = True
@@ -238,7 +238,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
         # should execute only once at start of IMU turn
         if not imu_pid.turning:
             print "ENTERING CORNER"
-            
+
             imu_pid.turning = True
             ir_top_pid.ignore = True
             ir_bottom_pid.ignore = True
@@ -262,7 +262,7 @@ def heuristic3(ir_bottom_pid, ir_top_pid, imu_pid):
 
                 # This will require that I track the derivative of the IR distance errors as opposed to
                 # just the current values of ir_bottom_error and ir_top_error.
-                 
+
             else:
                 print "EXITING CORNER: ir_error < DOOR_THRESHOLD"
                 imu_pid.turning = False
@@ -518,7 +518,7 @@ def odroid():
             # Set zero intial velocity and steering
             motor.set_target(CENTER)
             steering.set_target(CENTER)
-            
+
             # Set forward speed
             motor.set_target(MOTOR_SPEED)
 
@@ -527,7 +527,7 @@ def odroid():
 
             count = 0
             while not rospy.is_shutdown():
-                
+
                 # Get measurement reading from sensor(s) and publish state
                 if BOTTOM_IR:
                     ir_bottom_pid.recorded_states = []
@@ -599,6 +599,9 @@ def odroid():
                 steering.set_target(steering_cmd)
                 print
 
+                # Kill command
+                if ir_top_pid.recorded_states[-1] <= 25:
+                    break
 
 if __name__ == '__main__':
     import rospy

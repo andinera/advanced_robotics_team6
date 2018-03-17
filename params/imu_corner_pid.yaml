@@ -1,8 +1,8 @@
 
 # Kp, Ki, Kd should either all be positive or all be negative
-Kp: -6250.0
+Kp: -8000.0
 Ki: -0.0
-Kd: -1000.0
+Kd: -500.0
 # [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905
 upper_limit: 1905
 lower_limit: -1905
