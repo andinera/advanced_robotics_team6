@@ -126,7 +126,6 @@ class Controller:
 
         if pos != 0:
             pos = 1/float(pos)
-            pos = 3212000000*pos**3 - 17229000*pos**2 + 129560*pos - 117.11
         return pos
 
     # Example call
