@@ -8,6 +8,13 @@ from std_srvs.srv import Empty, SetBool, SetBoolResponse
 
 def callback():
     print 'hello'
+    if True :
+        print "Hello 1"
+        if True:
+            print "Hello 2"
+            break
+        print "Hello 3"
+    print "Final Hello"
 
 def server():
     rospy.init_node('server')

@@ -26,6 +26,10 @@ imu_threshold: 5
 # IR sensor threshold for predicting passing a door (cm)
 door_threshold: 50
 # IR sensor threshold for predicting entering a corner (cm)
+corner_error_threshold: 500
+# IR sensor threshold for predicting passing a door (cm)
+door_error_threshold: 50
+# IR sensor threshold for predicting entering a corner (cm)
 corner_threshold: 375
 # IR sensor threshold for resetting IMU setpoint
 imu_reset_threshold: 3
