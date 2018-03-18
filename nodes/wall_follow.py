@@ -746,8 +746,10 @@ def odroid():
                     ir_top_pid.recorded_states = []
                     for i in range(NUM_READINGS):
                         ir_top_pid.recorded_states.append(ir_top.get_position())
-                    state =sum(ir_top_pid.recorded_states)      \
-                                        / float(len(ir_top_pid.recorded_states))
+                    state = pid_driver.Driver.ir_angle_conversion(ir_top_pid, \
+-                                        sum(ir_top_pid.recorded_states)      \
+-                                        / float(len(ir_top_pid.recorded_states)), \
+-                                        TOP_IR_ANGLE)
                 else:
                     state = DUMMY_IR_VALUE
                 rospy.loginfo("Top IR Distance:\t%f", state)
