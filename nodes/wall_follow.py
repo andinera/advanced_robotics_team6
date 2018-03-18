@@ -376,7 +376,7 @@ def heuristic2(ir_bottom_pid, ir_top_pid, imu_pid):
 #                    HEURISTIC 1
 ###############################################################################
 
-def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
+def heuristic1(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
     # For each sensor,
     # If 4 or more states are recorded
     # Then read second largest and second smallest
@@ -394,6 +394,7 @@ def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
     max_bottom_ir = max(ir_bottom_pid.reported_states)
     min_bottom_ir = min(ir_bottom_pid.reported_states)
     diff_bottom_ir = max_bottom_ir - min_bottom_ir
+
     if len(ir_top_pid.reported_states) >= 4:
         max_top_ir = ir_top_pid.reported_states.index(max(ir_top_pid.reported_states))
         ir_top_pid.reported_states.remove(max_top_ir)
@@ -402,36 +403,42 @@ def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
     max_top_ir = max(ir_top_pid.reported_states)
     min_top_ir = min(ir_top_pid.reported_states)
     diff_top_ir = max_top_ir - min_top_ir
-    if len(imu_pid.reported_states) >= 4:
-        max_imu = imu_pid.reported_states.index(max(imu_pid.reported_states))
-        imu_pid.reported_states.remove(max_imu)
-        min_imu = imu_pid.reported_states.index(max(imu_pid.reported_states))
-        imu_pid.reported_states.remove(min_imu)
-    max_imu = max(imu_pid.reported_states)
-    min_imu = min(imu_pid.reported_states)
-    diff_imu = max_imu - min_imu
+
+    if len(imu_wall_pid.reported_states) >= 4:
+        max_wall_imu = imu_wall_pid.reported_states.index(max(imu_wall_pid.reported_states))
+        imu_wall_pid.reported_states.remove(max_wall_imu)
+        min_wall_imu = imu_wall_pid.reported_states.index(max(imu_wall_pid.reported_states))
+        imu_wall_pid.reported_states.remove(min_wall_imu)
+    max_wall_imu = max(imu_wall_pid.reported_states)
+    min_wall_imu = min(imu_wall_pid.reported_states)
+    diff_wall_imu = max_wall_imu - min_wall_imu
+
+    if len(imu_corner_pid.reported_states) >= 4:
+        max_corner_imu = imu_corner_pid.reported_states.index(max(imu_corner_pid.reported_states))
+        imu_corner_pid.reported_states.remove(max_corner_imu)
+        min_corner_imu = imu_corner_pid.reported_states.index(max(imu_corner_pid.reported_states))
+        imu_corner_pid.reported_states.remove(min_corner_imu)
+    max_corner_imu = max(imu_corner_pid.reported_states)
+    min_corner_imu = min(imu_corner_pid.reported_states)
+    diff_corner_imu = max_corner_imu - min_corner_imu
 
     # If following wall
     if diff_bottom_ir < DOOR_THRESHOLD and diff_top_ir < DOOR_THRESHOLD:
         ir_bottom_pid.ignore = False
         ir_top_pid.ignore = False
+        imu_corner_pid.ignore = True
         # If the car is driving parallel to the wall within the imu reset threshold
         if diff_bottom_ir < IMU_RESET_THRESHOLD and diff_top_ir < IMU_RESET_THRESHOLD:
-            states = imu_pid.recorded_states
-            y = 0
-            x = 0
-            for state in states:
-                y += math.sin(state)
-                x += math.cos(state)
-            imu_heading = math.atan2(y, x)
             rospy.wait_for_service('imu/calibrate')
             try:
                 rospy.ServiceProxy('imu/calibrate', Empty)
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
-            imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_heading)
+            imu_wall_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_corner_pid.reported_states[-1])
+            imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_wall_pid.setpoint)
     # If passing doorway
     elif diff_bottom_ir < CORNER_THRESHOLD and diff_top_ir < CORNER_THRESHOLD:
+        imu_corner_pid.ignore = True
         if diff_bottom_ir >= DOOR_THRESHOLD:
             ir_bottom_pid.ignore = True
         else:
@@ -452,17 +459,20 @@ def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
             ir_top_pid.ignore = True
         # If fully in the corner
         # Then set imu setpoint 90 degrees clockwise
-        if diff_bottom_ir.ignore == True and diff_top_ir.ignore == True:
-            setpoint = imu_pid.setpoint - math.radians(90)
+        if diff_bottom_ir.ignore == True and diff_top_ir.ignore == True \
+                and imu_wall_pid.setpoint == imu_corner_pid.setpoint:
+            setpoint = imu_corner_pid.setpoint - math.radians(90)
             if setpoint <= -math.pi:
                 setpoint += 2*math.pi
-            imu_pid.imu_setpoint(IMU_CONNECTED,
+            imu_corner_pid.imu_setpoint(IMU_CONNECTED,
                                  DUMMY_IMU_VALUE,
-                                 imu_pid.setpoint - math.radians(90))
-    if ir_bottom_pid.ignore == True and ir_top_pid.ignore == True:
-        imu_pid.ignore = False
+                                 imu_corner_pid.setpoint - math.radians(90))
+            imu_corner_pid.ignore = False
+    if ir_bottom_pid.ignore == True and ir_top_pid.ignore == True \
+            and imu_corner_pid.ignore == True:
+        imu__wall_pid.ignore = False
     else:
-        imu_pid.ignore = True
+        imu_wall_pid.ignore = True
 
     # Set steering command as average of steering commands that we want to use
     i = 0
@@ -628,6 +638,7 @@ def odroid():
 
                 # Heuristics
                 steering_cmd = test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+                # steering_cmd = heuristic1(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
                 # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
                 # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
                 #                           ir_bottom_state,ir_top_state,imu_state)
