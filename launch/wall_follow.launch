@@ -1,15 +1,15 @@
 <launch>
 
     <!-- Initialize IMU driver -->
-    <!-- <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
+    <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
     <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
         args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
         output="screen">
         <param name="period" value="8"/>
-    </node> -->
+    </node>
 
     <!-- Dummy node for sending IMU data -->
-    <node pkg="advanced_robotics_team6" type="fake_imu.py" name="imu_faker_node" />
+    <!-- <node pkg="advanced_robotics_team6" type="fake_imu.py" name="imu_faker_node" /> -->
 
     <!-- Initialize IMU data transform -->
     <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />

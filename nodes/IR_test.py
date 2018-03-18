@@ -11,7 +11,7 @@ write_data = False
 rospy.init_node('ir_test')
 
 if write_data:
-    csv_out = open("IR_out.csv", 'a')
+    csv_out = open("IR_out_031718.csv", 'a')
     writer = csv.writer(csv_out)
 
 with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
@@ -43,7 +43,7 @@ with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
             writer.writerow([350, data_top, data_bottom])
 
         # print i,"\t",d,"\t",d1,"\t",d2,"\t",d3,"\t",d4
-        print "{}\t{}\t{}".format(i, data_bottom, data)
+        print "{}\t{}\t{}".format(i, data_bottom, data_top)
         # print i,"\t",data_bottom,"\t",data_top
         rate.sleep()
         i += 1

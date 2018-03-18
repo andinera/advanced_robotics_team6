@@ -7,9 +7,7 @@ def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
         setpoint = imu_corner_pid.setpoint - math.radians(90)
         if setpoint <= -math.pi:
             setpoint += 2*math.pi
-        imu_corner_pid.imu_setpoint(IMU_CONNECTED,
-                             DUMMY_IMU_VALUE,
-                             setpoint)
+        imu_corner_pid.imu_setpoint(setpoint)
         return imu_corner_pid.control_effort
     else:
         return imu_corner_pid.control_effort
@@ -482,34 +480,16 @@ def heuristic1(ir_bottom_pid, ir_top_pid, imu_pid):
     return steering_cmd
 
 
-# Estimate for distance of car to wall based on measurement from top IR sensor
-# and IMU heading
-def ir_top_conversion(hypotenuse, imu):
-    if IMU_WALL:
-        states = imu.recorded_states
-        y = 0
-        x = 0
-        for state in states:
-            y += math.sin(state)
-            x += math.cos(state)
-        heading = math.atan2(y, x)
-        offset = imu.setpoint - heading
-    else:
-        offset = 0
-    return hypotenuse * math.cos(IR_STATE - offset)
-
-
 # Callback from kalman filter subscriber
-def kalman_filter_callback(data, imu_wall_pid):
+def kalman_filter_callback(data, imu_pid):
     x = data.pose.pose.orientation.x
     y = data.pose.pose.orientation.y
     z = data.pose.pose.orientation.z
     w = data.pose.pose.orientation.w
     angles = euler_from_quaternion([x, y, z, w])
-
-    if len(imu_wall_pid.recorded_states) >= NUM_READINGS:
-        del imu_wall_pid.recorded_states[0]
-    imu_wall_pid.recorded_states.append(angles[2])
+    if len(imu_pid.recorded_states) >= NUM_READINGS:
+        del imu_pid.recorded_states[0]
+    imu_pid.recorded_states.append(angles[2])
 
 
 # Main method
@@ -519,37 +499,59 @@ def odroid():
     with pololu.Controller(0) as steering,  \
          pololu.Controller(1) as motor,     \
          pololu.Controller(2) as ir_bottom, \
-         pololu.Controller(3) as ir_top,    \
-         phidget.Controller() as imu:
+         pololu.Controller(3) as ir_top:
 
          # Initialize PID drivers
-         with pid_driver.Driver("bottom_IR", ir_bottom, BOTTOM_IR, imu, STATES_STORED) as ir_bottom_pid,    \
-              pid_driver.Driver("top_IR", ir_top, TOP_IR, imu, STATES_STORED) as ir_top_pid,             \
-              pid_driver.Driver("IMU_WALL", imu, IMU_WALL, STATES_STORED) as imu_wall_pid,                       \
-              pid_driver.Driver("IMU_CORNER", imu, IMU_CORNER, STATES_STORED) as imu_corner_pid:
+         with pid_driver.Driver("IMU_CORNER",
+                                None,
+                                IMU_CORNER,
+                                NUM_STATES_STORED) as imu_corner_pid,          \
+              pid_driver.Driver("IMU_WALL",
+                                None,
+                                IMU_WALL,
+                                NUM_STATES_STORED) as imu_wall_pid,            \
+              pid_driver.Driver("bottom_IR",
+                                ir_bottom,
+                                BOTTOM_IR,
+                                NUM_STATES_STORED,
+                                imu_corner_pid) as ir_bottom_pid,              \
+              pid_driver.Driver("top_IR",
+                                ir_top,
+                                TOP_IR,
+                                NUM_STATES_STORED,
+                                imu_corner_pid) as ir_top_pid:
 
+            # Current wall following state
+            # Used in state machine heuristic
             robot = {"state": "wall_follow"}
 
             # Initialize subscriber for IMU
             kf_sub = rospy.Subscriber("odometry/filtered",
                                        Odometry,
                                        kalman_filter_callback,
-                                       imu_wall_pid)
+                                       imu_corner_pid)
+
+            # Calibrate IMU gyro biases
+            if IMU_CONNECTED:
+                rospy.wait_for_service('imu/calibrate')
+                try:
+                    rospy.ServiceProxy('imu/calibrate', Empty)
+                except rospy.ServiceException, e:
+                    print "Service call failed: %s"%e
 
             # Send setpoints to PIDs
-            if IMU_WALL:
-                # Wait for recorded IMU data before publishing setpoint
-                rospy.sleep(0.25)
-                imu_wall_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE)
-                imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_wall_pid.setpoint)
-            if BOTTOM_IR:
-                ir_bottom_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_STATE)
-            if TOP_IR:
-                ir_top_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, IR_STATE)
+            # Wait for recorded IMU data before publishing setpoint
+            rospy.sleep(0.25)
+            imu_corner_pid.imu_setpoint()
+            print 'test1'
+            imu_wall_pid.imu_setpoint(imu_corner_pid.setpoint.data)
+            ir_bottom_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE)
+            ir_top_pid.ir_setpoint(POLOLU_CONNECTED, NUM_READINGS, DUMMY_IR_VALUE, TOP_IR_ANGLE)
 
             # Set zero intial velocity and steering
             motor.set_target(CENTER)
             steering.set_target(CENTER)
+            rospy.sleep(0.1)
 
             # Set forward speed
             motor.set_target(MOTOR_SPEED)
@@ -557,46 +559,65 @@ def odroid():
             # Iteration rate
             rate = rospy.Rate(RATE)
 
+            # Count iterations
+            # Can be used for debugging or any miscellaneous needs
             count = 0
             while not rospy.is_shutdown():
 
-                # Get measurement reading from bottom IR sensor and publish state
-                ir_bottom_pid.recorded_states = []
-                for i in range(NUM_READINGS):
-                    ir_bottom_pid.recorded_states.append(ir_bottom.get_position())
-                state = sum(ir_bottom_pid.recorded_states)                   \
-                                     / float(len(ir_bottom_pid.recorded_states))
+                if POLOLU_CONNECTED:
+                    # Get measurement reading from bottom IR sensor and publish state
+                    ir_bottom_pid.recorded_states = []
+                    for i in range(NUM_READINGS):
+                        ir_bottom_pid.recorded_states.append(ir_bottom.get_position())
+                    state = sum(ir_bottom_pid.recorded_states)                   \
+                                         / float(len(ir_bottom_pid.recorded_states))
+                else:
+                    state = DUMMY_IR_VALUE
                 rospy.loginfo("Bottom IR Distance:\t%f", state)
                 ir_bottom_pid.publish_state(state)
+                if len(ir_bottom_pid.reported_states) >= NUM_STATES_STORED:
+                    del ir_bottom_pid.reported_states[0]
+                ir_bottom_pid.reported_states.append(state)
 
-                # Get measurement reading from top IR sensor and publish state
-                ir_top_pid.recorded_states = []
-                for i in range(NUM_READINGS):
-                    ir_top_pid.recorded_states.append(ir_top.get_position())
-                state = ir_top_conversion(sum(ir_top_pid.recorded_states), imu_wall_pid)      \
-                                  / float(len(ir_top_pid.recorded_states))
+                if POLOLU_CONNECTED:
+                    # Get measurement reading from top IR sensor and publish state
+                    ir_top_pid.recorded_states = []
+                    for i in range(NUM_READINGS):
+                        ir_top_pid.recorded_states.append(ir_top.get_position())
+                    state = pid_driver.Driver.ir_angle_conversion(ir_top_pid, \
+                                        sum(ir_top_pid.recorded_states)      \
+                                        / float(len(ir_top_pid.recorded_states)), \
+                                        TOP_IR_ANGLE)
+                else:
+                    state = DUMMY_IR_VALUE
                 rospy.loginfo("Top IR Distance:\t%f", state)
                 ir_top_pid.publish_state(state)
+                if len(ir_top_pid.reported_states) >= NUM_STATES_STORED:
+                    del ir_top_pid.reported_states[0]
+                ir_top_pid.reported_states.append(state)
 
+                # Block for shifting IMU setpoint right 90 degrees
                 #if count == 150:
                     #setpoint = imu_pid.setpoint - math.radians(90)
                     #imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, setpoint)
-                states = imu_wall_pid.recorded_states
+
+                # Get measurement reading from top IR sensor and publish state
                 y = 0
                 x = 0
-                for state in states:
+                for state in imu_corner_pid.recorded_states:
                     y += math.sin(state)
                     x += math.cos(state)
                 imu_heading = math.atan2(y, x)
-                if imu_heading < imu_wall_pid.setpoint - math.pi:
+                if imu_heading < imu_corner_pid.setpoint.data - math.pi:
                     imu_heading += 2*math.pi
-                elif imu_heading > imu_wall_pid.setpoint + math.pi:
+                elif imu_heading > imu_corner_pid.setpoint.data + math.pi:
                     imu_heading -= 2*math.pi
                 rospy.loginfo("IMU Heading:\t%f", math.degrees(imu_heading))
                 imu_wall_pid.publish_state(imu_heading)
                 imu_corner_pid.publish_state(imu_heading)
-                rospy.loginfo("IMU wall setpoint:\t%f", math.degrees(imu_wall_pid.setpoint))
-                rospy.loginfo("IMU corner setpoint:\t%f", math.degrees(imu_corner_pid.setpoint))
+                rospy.loginfo("IMU wall setpoint:\t%f", math.degrees(imu_wall_pid.setpoint.data))
+                rospy.loginfo("IMU corner setpoint:\t%f", math.degrees(imu_corner_pid.setpoint.data))
+
                 # Iterate at frequency of rate
                 rate.sleep()
 
@@ -616,7 +637,7 @@ def odroid():
                 print
 
                 # Kill command
-                if ir_top_pid.recorded_states[-1] <= 25:
+                if math.fabs(ir_top_pid.recorded_states[-1]) <= 65:
                     break
 
 if __name__ == '__main__':
@@ -633,7 +654,6 @@ if __name__ == '__main__':
     POLOLU_CONNECTED = rospy.get_param('~pololu_connected')
     IMU_CONNECTED = rospy.get_param('~imu_connected')
     DUMMY_IR_VALUE = rospy.get_param('~dummy_ir_value')
-    DUMMY_IMU_VALUE = rospy.get_param('~dummy_imu_value')
     BOTTOM_IR = rospy.get_param('~bottom_ir')
     TOP_IR = rospy.get_param('~top_ir')
     IMU_WALL = rospy.get_param('~imu_wall')
@@ -644,19 +664,17 @@ if __name__ == '__main__':
     MOTOR_SPEED = rospy.get_param('~motor_speed')
     RATE = rospy.get_param('~rate')
     NUM_READINGS = rospy.get_param('~num_readings')
-    IR_STATE = rospy.get_param('~ir_state')
+    TOP_IR_ANGLE = rospy.get_param('~top_ir_angle')
     IMU_THRESHOLD = rospy.get_param('~imu_threshold')
     DOOR_THRESHOLD = rospy.get_param('~door_threshold')
     CORNER_THRESHOLD = rospy.get_param('~corner_threshold')
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
-    STATES_STORED = rospy.get_param('~states_stored')
+    NUM_STATES_STORED = rospy.get_param('~num_states_stored')
 
     if POLOLU_CONNECTED:
         from drivers import pololu
     else:
         from drivers import dummy_pololu as pololu
-
-    from drivers import phidget
     from drivers import pid_driver
 
 
