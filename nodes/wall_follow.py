@@ -13,7 +13,7 @@ def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
         return imu_corner_pid.control_effort
     else:
         return imu_corner_pid.control_effort
-def kodiesOneIRStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     ir_top_pid.ignore = True
     if len(imu_corner_pid.reported_states) < 2:
         return 0
@@ -86,17 +86,15 @@ def kodiesOneIRStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corn
 
     elif robot["state"] == 'corner':
         print "CORNERING"
-        if imu_corner_error < IMU_THRESHOLD:
+        if imu_corner_error < math.pi/18:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
-            if ir_bottom_error < CORNER_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD:
+            if ir_bottom_error < CORNER_ERROR_THRESHOLD
                 # turn IR PID control back on
                 ir_bottom_pid.ignore = False
-                ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
-
                 robot["state"] = 'wall_follow'
 
         else:
