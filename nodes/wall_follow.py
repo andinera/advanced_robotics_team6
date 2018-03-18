@@ -51,13 +51,14 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
-            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
+            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(80)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
         # either top or bottom IR has detected doorway
-        elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
-            (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+    #    elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
+     #       (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+        elif False:
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
             imu_setpoint = imu_wall_pid.setpoint.data
@@ -79,9 +80,9 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
             if ir_bottom_error < CORNER_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
-            elif ir_bottom_error > CORNER_ERROR_THRESHOLD
+            elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
                 ir_bottom_pid.ignore = True
-            elif ir_top_error > CORNER_ERROR_THRESHOLD
+            elif ir_top_error > CORNER_ERROR_THRESHOLD:
                 ir_top_pid.ignore = True
 
 
@@ -93,10 +94,10 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
         rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        if ir_bottom_error > CORNER_ERROR_THRESHOLD
+        if ir_bottom_error > CORNER_ERROR_THRESHOLD:
             ir_bottom_pid.ignore = True
             robot["state"] = 'wall_follow'
-        elif: ir_top_error > CORNER_ERROR_THRESHOLD
+        elif ir_top_error > CORNER_ERROR_THRESHOLD:
             ir_top_pid.ignore = True
             robot["state"] = 'wall_follow'
         else:
@@ -117,7 +118,7 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
 
     elif robot["state"] == 'corner':
         print "CORNERING"
-        if imu_corner_error < IMU_THRESHOLD * 0.0174533 * 2:
+        if imu_corner_error < IMU_THRESHOLD:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
@@ -132,7 +133,7 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
 
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_pid.state.data), math.degrees(imu_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
 
     else:
         print "Entered default case in state machine."
@@ -745,10 +746,8 @@ def odroid():
                     ir_top_pid.recorded_states = []
                     for i in range(NUM_READINGS):
                         ir_top_pid.recorded_states.append(ir_top.get_position())
-                    state = pid_driver.Driver.ir_angle_conversion(ir_top_pid, \
-                                        sum(ir_top_pid.recorded_states)      \
-                                        / float(len(ir_top_pid.recorded_states)), \
-                                        TOP_IR_ANGLE)
+                    state =sum(ir_top_pid.recorded_states)      \
+                                        / float(len(ir_top_pid.recorded_states))
                 else:
                     state = DUMMY_IR_VALUE
                 rospy.loginfo("Top IR Distance:\t%f", state)

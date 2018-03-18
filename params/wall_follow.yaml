@@ -20,13 +20,13 @@ rate: 50
 # Number of sensor readings averaged over
 num_readings: 10
 # Top IR sensor estimated angle counter-clockwise from the x-axis (degrees)
-top_ir_angle: deg(39)
+top_ir_angle: 0
 # IMU threshold when steadying up after a corner (degrees)
 imu_threshold: 5
 # IR sensor threshold for predicting passing a door (cm)
 door_threshold: 50
 # IR sensor threshold for predicting entering a corner (cm)
-corner_error_threshold: 500
+corner_error_threshold: 350
 # IR sensor threshold for predicting passing a door (cm)
 door_error_threshold: 50
 # IR sensor threshold for predicting entering a corner (cm)
