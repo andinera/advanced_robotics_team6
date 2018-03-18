@@ -14,22 +14,24 @@ def test_imus(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
     else:
         return imu_corner_pid.control_effort
 
-def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
+def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
         # define setpoint error values for state switching logic
         ir_bottom_error = math.fabs(ir_bottom_pid.setpoint - ir_bottom_pid.state.data)
         ir_top_error = math.fabs(ir_top_pid.setpoint - ir_top_pid.state.data)
-        imu_error = math.fabs(imu_pid.setpoint - imu_pid.state.data)
+        imu_wall_error = math.fabs(imu_wall_pid.setpoint - imu_wall_pid.state.data)
+        imu_corner_error = math.fabs(imu_corner_pid.setpoint - imu_corner_pid.state.data)
 
         # finite differencing on state to estimate derivative (divide by timestep?)
-        ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_state)
-        ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_state)
-        imu_diff = math.fabs(imu_pid.state.data - imu_state)
+        ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])
+        ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])
+        imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_wall_pid.reported_states[-2])
+        imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2])
 
         rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
         rospy.loginfo("Top IR Error:\t%f", ir_top_error)
-        rospy.loginfo("IMU Error:\t%f", imu_error)
-
+        rospy.loginfo("IMU WALL Error:\t%f", imu_wall_error)
+        rospy.loginfo("IMU CORNER Error:\t%f", imu_corner_error)
 
         if robot["state"] == 'wall_follow':
             # either top or bottom IR has detected doorway
@@ -42,19 +44,21 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
                 if ir_top_diff > DOOR_THRESHOLD:
                     ir_top_pid.ignore = True
 
+                # pass doorway using IMU WALL PID
+                imu_wall_pid.ignore = False
                 robot["state"] = 'doorway'
 
             # either top or bottom IR has detected corner
             elif ir_bottom_diff > DOOR_THRESHOLD or ir_top_diff > DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = True
                 ir_top_pid.ignore = True
-                imu_pid.ignore = True
+                imu_wall_pid.ignore = True       # don't think this should be false at this point...
 
-                imu_corner_pid = False
+                imu_corner_pid.ignore = False
 
                 # reset IMU setpoint for cornering task
                 imu_setpoint = imu_pid.setpoint - math.radians(90)
-                imu_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
+                imu_wall_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
                 imu_corner_pid.imu_setpoint(IMU_CONNECTED, DUMMY_IMU_VALUE, imu_setpoint)
                 robot["state"] = 'corner'
 
@@ -74,6 +78,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
             if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
+                imu_wall_pid.ignore = True
 
                 robot["state"] = 'wall_follow'
 
@@ -86,7 +91,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_pid,imu_cornering_pid):
                     # turn IR PID control back on
                     ir_bottom_pid.ignore = False
                     ir_top_pid.ignore = False
-                    imu_pid.ignore = False      # may not want to use imu_pid to do wall-following
+                    imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                     imu_corner_pid.ignore = True
 
                     robot["state"] = 'wall_follow'
@@ -496,8 +501,6 @@ def odroid():
               pid_driver.Driver("IMU_WALL", imu, IMU, STATES_STORED) as imu_wall_pid,                       \
               pid_driver.Driver("IMU_CORNER", imu, IMU, STATES_STORED) as imu_corner_pid:
 
-            robot = {"state": "wall_follow"}
-
             # Initialize subscriber for IMU
             kf_sub = rospy.Subscriber("odometry/filtered",
                                        Odometry,
@@ -524,6 +527,9 @@ def odroid():
 
             # Iteration rate
             rate = rospy.Rate(RATE)
+
+            # set initial robot state for stateMachine()
+            robot = {"state": "wall_follow"}
 
             count = 0
             while not rospy.is_shutdown():
