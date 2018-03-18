@@ -69,7 +69,7 @@ class Driver:
         self.control_effort = int(data.data)
 
     # Initialize IR setpoint
-    def ir_setpoint(self, pololu_connected, num_readings, dummy_ir_value, ir_angle=0):
+    def ir_setpoint(self, pololu_connected, num_readings, dummy_ir_value):
         if pololu_connected:
             self.recorded_states = []
             for i in range(num_readings):
@@ -77,7 +77,6 @@ class Driver:
             self.setpoint.data = sum(self.recorded_states) / float(len(self.recorded_states))
         else:
             self.setpoint.data = dummy_ir_value
-        self.setpoint.data = Driver.ir_angle_conversion(self, self.setpoint.data, ir_angle)
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
