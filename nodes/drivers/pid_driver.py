@@ -116,12 +116,13 @@ class Driver:
     # and IMU heading
     @staticmethod
     def ir_angle_conversion(ir, hypotenuse, ir_angle):
-        states = ir.imu.recorded_states
-        y = 0
-        x = 0
-        for state in states:
-            y += math.sin(state)
-            x += math.cos(state)
-        heading = math.atan2(y, x)
-        offset = ir.imu.setpoint.data - heading
-        return hypotenuse * math.cos(ir_angle - offset)
+        #states = ir.imu.recorded_states
+        #y = 0
+        #x = 0
+        #for state in states:
+        #    y += math.sin(state)
+        #    x += math.cos(state)
+        #heading = math.atan2(y, x)
+        #offset = ir.imu.setpoint.data - heading
+        #return hypotenuse * math.cos(ir_angle - offset)
+        return hypotenuse * math.cos(ir_angle)
