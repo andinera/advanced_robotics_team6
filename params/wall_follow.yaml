@@ -14,7 +14,7 @@ min: 4095
 max: 7905
 center: 6000
 # Initial motor speed
-motor_speed: 6000
+motor_speed: 6300
 # Servo set position rate (Hz)
 rate: 50
 # Number of sensor readings averaged over
@@ -26,7 +26,7 @@ imu_threshold: 5
 # IR sensor threshold for predicting passing a door (cm)
 door_threshold: 50
 # IR sensor threshold for predicting entering a corner (cm)
-corner_threshold: 500
+corner_threshold: 375
 # IR sensor threshold for resetting IMU setpoint
 imu_reset_threshold: 3
 # Number of previous sensor states to save

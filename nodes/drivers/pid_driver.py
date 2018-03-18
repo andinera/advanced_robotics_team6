@@ -82,6 +82,7 @@ class Driver:
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.setpoint.data)
+        self.state.data = self.setpoint.data
         print "Setpoint for {} = {} cm".format(self.sensor, self.setpoint.data)
 
     # Initialize IMU setpoint
@@ -99,13 +100,16 @@ class Driver:
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
-        print 'test4'
         self.reported_states.append(self.setpoint.data)
+        self.state.data = self.setpoint.data
         print "Setpoint for {} = {} degrees".format(self.sensor, math.degrees(self.setpoint.data))
 
     # Publish sensor state
     def publish_state(self, state):
         self.state.data = state
+        if len(self.reported_states) >= self.num_states_stored:
+            del self.reported_states[0]
+        self.reported_states.append(state)
         self.state_pub.publish(self.state)
 
     # Estimate for distance of car to wall based on measurement from top IR sensor
