@@ -56,7 +56,6 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
             robot["state"] = 'corner'
-            time_since_turn = time.time()
         # either top or bottom IR has detected doorway
         elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) and False:
             print "DOORWAY DETECTED"
@@ -87,8 +86,6 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
         print "CORNERING"
         if imu_corner_error < math.pi/18:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
-
-            time_diff = time.time() - time_since_turn
 
             # both IR errors are less than corner state
             if time_diff > 3 and (ir_bottom_error < CORNER_ERROR_THRESHOLD):
@@ -124,7 +121,7 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
 
     return steering_cmd
 
-def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid,time_since_turn):
 
     if len(imu_corner_pid.reported_states) < 2:
         return 0
@@ -166,9 +163,9 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
         # either top or bottom IR has detected doorway
-    #    elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
-     #       (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
-        elif False:
+        elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
+           (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
             imu_setpoint = imu_wall_pid.setpoint.data
@@ -230,7 +227,7 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
         print "CORNERING"
         if imu_corner_error < IMU_THRESHOLD:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
-
+            time_since_turn = rospy.get_time()
             # both IR errors are less than corner state
             if ir_bottom_error < CORNER_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD:
                 # turn IR PID control back on
@@ -238,7 +235,7 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
-
+                
                 robot["state"] = 'wall_follow'
 
         else:
@@ -726,6 +723,7 @@ def odroid():
         imu_wall_pid.ignore = True
         imu_corner_pid.ignore = True
 
+        time_since_turn = rospy.get_time()
         # Count iterations
         # Can be used for debugging or any miscellaneous needs
         count = 0
@@ -788,7 +786,7 @@ def odroid():
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
             # steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-            steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            steering_cmd = kodiesStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid,time_since_turn)
 
             # Set steering target
             steering_cmd += CENTER
@@ -810,13 +808,12 @@ if __name__ == '__main__':
     rospy.init_node('odroid_node', anonymous=True)
 
     import time
-    time_since_turn = time.time()
+
 
     from nav_msgs.msg import Odometry
     from std_srvs.srv import Empty
     from tf.transformations import euler_from_quaternion
     import math
-
     POLOLU_CONNECTED = rospy.get_param('~pololu_connected')
     IMU_CONNECTED = rospy.get_param('~imu_connected')
     DUMMY_IR_VALUE = rospy.get_param('~dummy_ir_value')
