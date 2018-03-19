@@ -1,25 +1,43 @@
 #!/usr/bin/env python
 
+import time
+from drivers import dummy_pololu
+from drivers import pid_driver
 import rospy
-from test_module import Test_module
-import math
-from std_srvs.srv import Empty, SetBool, SetBoolResponse
+
+IMU_CORNER = None
+NUM_STATES_STORED = None
+IMU_WALL = None
+BOTTOM_IR = None
+TOP_IR = None
 
 
-def callback():
-    print 'hello'
-    if True :
-        print "Hello 1"
-        if True:
-            print "Hello 2"
-            break
-        print "Hello 3"
-    print "Final Hello"
+if __name__ == '__main__':
+    rospy.init_node('test_node', anonymous=True)
 
-def server():
-    rospy.init_node('server')
-    s = rospy.Service('test', Empty, callback)
-    rospy.spin()
+    # Initialize Pololu Controllers
+    with dummy_pololu.Controller(0) as steering,  \
+         dummy_pololu.Controller(1) as motor,     \
+         dummy_pololu.Controller(2) as ir_bottom, \
+         dummy_pololu.Controller(3) as ir_top,      \
+    # Initialize PID drivers
+    pid_driver.Driver("IMU_CORNER",             \
+                    None,
+                    IMU_CORNER,
+                    NUM_STATES_STORED) as imu_corner_pid,          \
+    pid_driver.Driver("IMU_WALL",
+                    None,
+                    IMU_WALL,
+                    NUM_STATES_STORED) as imu_wall_pid,            \
+    pid_driver.Driver("bottom_IR",
+                    ir_bottom,
+                    BOTTOM_IR,
+                    NUM_STATES_STORED,
+                    imu_corner_pid) as ir_bottom_pid,              \
+    pid_driver.Driver("top_IR",
+                    ir_top,
+                    TOP_IR,
+                    NUM_STATES_STORED,
+                    imu_corner_pid) as ir_top_pid:
 
-if __name__ == "__main__":
-    server()
+        print 'hello'

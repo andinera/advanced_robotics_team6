@@ -6,13 +6,12 @@ import math
 
 class Driver:
     # Initialize PID communications
-    def __init__(self, sensor, controller, active, num_states_stored, imu=None):
+    def __init__(self, sensor, controller, active, num_states_stored):
         # Attributes passed during initialization
         self.sensor = sensor            # Name of sensor
         self.controller = controller    # Related Pololu Controller
         self.active = active            # Sensor is running
         self.num_states_stored = num_states_stored        # Number of states to be saved
-        self.imu = imu
         # Attributes used for PID control
         self.control_effort = 0         # PID control
         # PID messages
@@ -110,18 +109,3 @@ class Driver:
             del self.reported_states[0]
         self.reported_states.append(state)
         self.state_pub.publish(self.state)
-
-    # Estimate for distance of car to wall based on measurement from top IR sensor
-    # and IMU heading
-    @staticmethod
-    def ir_angle_conversion(ir, hypotenuse, ir_angle):
-        #states = ir.imu.recorded_states
-        #y = 0
-        #x = 0
-        #for state in states:
-        #    y += math.sin(state)
-        #    x += math.cos(state)
-        #heading = math.atan2(y, x)
-        #offset = ir.imu.setpoint.data - heading
-        #return hypotenuse * math.cos(ir_angle - offset)
-        return hypotenuse * math.cos(ir_angle)

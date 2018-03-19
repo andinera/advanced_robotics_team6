@@ -41,9 +41,11 @@ class Controller:
     def __del__(self):
         if self.channel == 0:
             self.set_target(6000)
-        elif self.channel == 1:
-            if self.target != 6000:
+        elif self.channel == 1 and self.target != 6000:
+            if self.target > 6000:
                 self.set_target(4095)
+            else:
+                self.set_target(6000)
 
     # Pass servo target as an integer in the range [4095, 7905]
     # Center value is 6000
