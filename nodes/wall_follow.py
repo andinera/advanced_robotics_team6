@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+
 def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
     if ir_bottom_pid.recorded_states[-1] < CORNER_THRESHOLD and ir_top_pid.recorded_states[-1] < CORNER_THRESHOLD \
             and ir_bottom_pid.recorded_states[-1] > 0 and ir_top_pid.recorded_states[-1] > 0:
@@ -13,7 +15,7 @@ def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
         return imu_corner_pid.control_effort
     else:
         return imu_corner_pid.control_effort
-def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     ir_top_pid.ignore = True
     if len(imu_corner_pid.reported_states) < 2:
         return 0
@@ -38,7 +40,7 @@ def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
+       # rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
         # either top or bottom IR has detected corner
         if ir_bottom_error > CORNER_ERROR_THRESHOLD:
             print "CORNER DETECTED"
@@ -48,12 +50,14 @@ def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
-            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(80)
+            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
+
             robot["state"] = 'corner'
+            time_since_turn = time.time()
         # either top or bottom IR has detected doorway
-    elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) and True:
+        elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) and False:
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
             imu_setpoint = imu_wall_pid.setpoint.data
@@ -67,18 +71,12 @@ def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
             robot["state"] = 'doorway'
 
 
-
-        else:
-            pass
-
-
-
     elif robot["state"] == 'doorway':
         print "DOORWAY"
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
+       # rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
         rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-        rospy.loginfo("ir_top_error:\t%f", ir_top_error)
+       # rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
         if ir_bottom_error < CORNER_ERROR_THRESHOLD:
             ir_bottom_pid.ignore = False
@@ -89,8 +87,10 @@ def kodiesStateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
         if imu_corner_error < math.pi/18:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
+            time_diff = time.time() - time_since_turn
+
             # both IR errors are less than corner state
-            if ir_bottom_error < CORNER_ERROR_THRESHOLD
+            if time_diff > 3 and (ir_bottom_error < CORNER_ERROR_THRESHOLD):
                 # turn IR PID control back on
                 ir_bottom_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
@@ -896,7 +896,7 @@ def odroid():
                 # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
                 #                           ir_bottom_state,ir_top_state,imu_state)
                 # steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-                steering_cmd = kodiesStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+                steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
                 count += 1
 
@@ -912,6 +912,8 @@ def odroid():
 
 if __name__ == '__main__':
     import rospy
+
+    time_since_turn = time.time()
 
     # Initialize node
     rospy.init_node('odroid_node', anonymous=True)
