@@ -327,6 +327,16 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             imu_wall_pid.ignore = False
             robot["state"] = 'doorway'
 
+        # passing window
+        elif (ir_top_diff > CORNER_THRESHOLD and not ir_bottom_diff > CORNER_THRESHOLD) or \
+             (ir_bottom_diff > CORNER_THRESHOLD and not ir_bottom_diff > CORNER_THRESHOLD):
+            if ir_top_diff > CORNER_THRESHOLD:
+                print "TOP IR PASSING WINDOW"
+                # may want to disable top IR as it passes window
+            if ir_bottom_diff > CORNER_THRESHOLD:
+                print "BOTTOM IR PASSING WINDOW"
+                # may want to disable bottom IR as it passes window
+
         # will corner only when both IR sensor errors exceed the corner threshold.
         # The intention is to prevent a window from being misinterpreted as a corner...
         # There may be a better way to make this distinction.
