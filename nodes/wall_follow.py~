@@ -4,7 +4,6 @@ import rospy
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
-from advanced_robotics_team6.srv import PololuCmd
 from tf.transformations import euler_from_quaternion
 import math
 from drivers import pid_driver
@@ -114,16 +113,16 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
     # Set steering command as average of steering commands that we want to use
     i = 0
     steering_cmd = 0
-    if not ir_top_pid.ignore:
+    if not ir_top_pid.ignore and TOP_IR:
         i += 1
         steering_cmd += ir_top_pid.control_effort
-    if not ir_bottom_pid.ignore:
+    if not ir_bottom_pid.ignore and BOTTOM_IR:
         i += 1
         steering_cmd += ir_bottom_pid.control_effort
-    if not imu_wall_pid.ignore:
+    if not imu_wall_pid.ignore and IMU_WALL:
         i += 1
         steering_cmd += imu_wall_pid.control_effort
-    if not imu_corner_pid.ignore:
+    if not imu_corner_pid.ignore and IMU_CORNER:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
     steering_cmd /= i
@@ -321,10 +320,6 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     #rospy.loginfo("IMU WALL Error:\t%f", imu_wall_error)
     #rospy.loginfo("IMU CORNER Error:\t%f", imu_corner_error)
 
-    # remap THRESHOLDS
-    DOOR_THRESHOLD = 200
-    CORNER_THRESHOLD = 500
-
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
@@ -343,9 +338,9 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
             # use imu wall-following PID controller and reset IMU setpoints
             imu_wall_pid.ignore = False
-            #imu_setpoint = imu_wall_pid.state.data
-            #imu_wall_pid.imu_setpoint(imu_setpoint)
-            #imu_corner_pid.imu_setpoint(imu_setpoint)
+            imu_setpoint = imu_wall_pid.state.data
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
 
             robot["state"] = 'doorway'
 
@@ -363,7 +358,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         # The intention is to prevent a window from being misinterpreted as a corner...
         # There may be a better way to make this distinction.
         # elif ir_bottom_diff > CORNER_THRESHOLD or ir_top_diff > CORNER_THRESHOLD:
-        elif ir_bottom_error > CORNER_THRESHOLD and ir_top_error > CORNER_THRESHOLD:
+        elif ir_bottom_error > CORNER_THRESHOLD and ir_top_diff_error > CORNER_THRESHOLD:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -740,7 +735,9 @@ def ir_bottom_callback(data, ir_bottom_pid):
 def odroid():
 
     # Initialize Pololu Controllers and PID drivers
-    with pid_driver.Driver("IMU_CORNER",
+    with pololu.Controller(0) as steering,  \
+         pololu.Controller(1) as motor,     \
+         pid_driver.Driver("IMU_CORNER",
                            NUM_STATES_STORED) as imu_corner_pid,          \
          pid_driver.Driver("IMU_WALL",
                            NUM_STATES_STORED) as imu_wall_pid,            \
@@ -751,11 +748,6 @@ def odroid():
 
         # Listed imus for printing
         pids = [ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid]
-   
-        rospy.wait_for_service('motor_cmd')
-        rospy.wait_for_service('steering_cmd')
-        motor_srv = rospy.ServiceProxy('motor_cmd', PololuCmd)
-        steering_srv = rospy.ServiceProxy('steering_cmd', PololuCmd)
 
         # Calibrate IMU gyro biases
         if not DUMMY_MODE:
@@ -765,7 +757,7 @@ def odroid():
             except rospy.ServiceException, e:
                 print "Service call failed: %s"%e
 
-        # Intialize subscriber for bottom IR sensor
+        # Initialize subscriber for bottom IR sensor
         ir_bottom_sub = rospy.Subscriber("pololu/bottom_IR/data",
                                           Float64,
                                           ir_bottom_callback,
@@ -776,10 +768,6 @@ def odroid():
                                       Float64,
                                       ir_top_callback,
                                       ir_top_pid)
-
-        #for _ in range(NUM_READINGS):
-        #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
-        #    ir_top_callback(ir_top.get_position(), ir_top_pid)
 
         # Initialize subscriber for IMU
         madgwick_sub = rospy.Subscriber("imu/data_madgwick",
@@ -796,16 +784,12 @@ def odroid():
         ir_top_pid.ir_setpoint()
 
         # Set zero intial velocity and steering
-        motor_srv(CENTER)
-        steering_srv(CENTER)
-        
-        #motor.set_target(CENTER)
-        #steering.set_target(CENTER)
+        motor.set_target(CENTER)
+        steering.set_target(CENTER)
         rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(MOTOR_SPEED)
-        #motor.set_target(MOTOR_SPEED)
+        motor.set_target(MOTOR_SPEED)
 
         # Iteration rate
         rate = rospy.Rate(RATE)
@@ -822,10 +806,6 @@ def odroid():
         count = 0
         while not rospy.is_shutdown():
 
-            #for _ in range(NUM_READINGS):
-            #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
-            #    ir_top_callback(ir_top.get_position(), ir_top_pid)
-
             # Publish sensor states
             ir_bottom_pid.ir_publish_state()
             ir_top_pid.ir_publish_state()
@@ -837,22 +817,21 @@ def odroid():
             # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
-           # steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-            steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            # steering_cmd = kodiesStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid,time_since_turn)
 
             # Set steering target
             steering_cmd += CENTER
-            #steering.set_target(steering_cmd)
-            steering_srv(steering_cmd)
+            steering.set_target(steering_cmd)
 
             # Print statements
-            #for pid in pids:
-            #    rospy.loginfo("Setpoint for {} = {}".format(pid.sensor, pid.setpoint.data))
-            #for pid in pids:
-            #    rospy.loginfo("State for {} = {}".format(pid.sensor, pid.state.data))
-            #for pid in pids:
-            #    rospy.loginfo("Control effort for {} = {}".format(pid.sensor, CENTER+pid.control_effort))
-            #rospy.loginfo("Steering Command:\t%d", steering_cmd)
+            for pid in pids:
+                rospy.loginfo("Setpoint for {} = {}".format(pid.sensor, pid.setpoint.data))
+            for pid in pids:
+                rospy.loginfo("State for {} = {}".format(pid.sensor, pid.state.data))
+            for pid in pids:
+                rospy.loginfo("Control effort for {} = {}".format(pid.sensor, CENTER+pid.control_effort))
+            rospy.loginfo("Steering Command:\t%d", steering_cmd)
             print
 
             # Count variable for debugging and miscellaneous uses
