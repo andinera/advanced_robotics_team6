@@ -8,30 +8,27 @@
         <param name="period" value="8"/>
     </node>
 
-    <!-- Dummy node for sending IMU data -->
-    <!-- <node pkg="advanced_robotics_team6" type="fake_imu.py" name="imu_faker_node" /> -->
+    <!-- Initialize IR node -->
+    <node pkg="advanced_robotics_team6" type="ir_node.py" name="ir_node" output="screen"/>
 
-    <!-- Initialize IMU data transform -->
-    <node pkg="advanced_robotics_team6" type="imu_tf.py" name="imu_tf_node" />
+    <!-- Dummy node for sending IMU data -->
+    <!-- <node pkg="advanced_robotics_team6" type="dummy_imu.py" name="dummy_imu_node" /> -->
+
+    <!-- Dummy node for sending IR data -->
+    <!-- <node pkg="advanced_robotics_team6" type="dummy_ir.py" name="dummy_ir_node" /> -->
 
     <!-- Initialize madgwick filter -->
     <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
       <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
-      <remap from="imu/data_raw" to="imu/data_tf"/>
       <remap from="imu/data" to="imu/data_madgwick"/>
     </node>
 
-    <!-- Initialize kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-      <rosparam command="load" file="$(find advanced_robotics_team6)/params/ekf_localization.yaml"/>
-    </node>
-
-    <!-- Initialize IMU PID -->
+    <!-- Initialize wall IMU PID -->
     <node name="imu_wall_pid" pkg="pid" type="controller" output="screen" >
         <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_wall_pid.yaml"/>
      </node>
 
-    <!-- Initialize CORNERING IMU PID -->
+    <!-- Initialize cornering IMU PID -->
     <node name="imu_corner_pid" pkg="pid" type="controller" output="screen" >
         <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_corner_pid.yaml"/>
     </node>

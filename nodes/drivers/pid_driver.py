@@ -3,14 +3,13 @@
 import rospy
 from std_msgs.msg import Float64, Bool
 import math
+import numpy
 
 class Driver:
     # Initialize PID communications
-    def __init__(self, sensor, controller, active, num_states_stored):
+    def __init__(self, sensor, num_states_stored):
         # Attributes passed during initialization
         self.sensor = sensor            # Name of sensor
-        self.controller = controller    # Related Pololu Controller
-        self.active = active            # Sensor is running
         self.num_states_stored = num_states_stored        # Number of states to be saved
         # Attributes used for PID control
         self.control_effort = 0         # PID control
@@ -68,26 +67,26 @@ class Driver:
         self.control_effort = int(data.data)
 
     # Initialize IR setpoint
-    def ir_setpoint(self, pololu_connected, num_readings, dummy_ir_value):
-        if pololu_connected:
-            self.recorded_states = []
-            for i in range(num_readings):
-                self.recorded_states.append(self.controller.get_position())
-            self.setpoint.data = sum(self.recorded_states) / float(len(self.recorded_states))
-        else:
-            self.setpoint.data = dummy_ir_value
+    def ir_setpoint(self):
+        states = self.recorded_states
+        std_dev = numpy.std(states)
+        mean = numpy.mean(states)
+        for state in states:
+            if state < mean-std_dev or state > mean+std_dev:
+                states.remove(state)
+        self.setpoint.data = numpy.mean(states)
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.setpoint.data)
         self.state.data = self.setpoint.data
-        print "Setpoint for {} = {} cm".format(self.sensor, self.setpoint.data)
 
     # Initialize IMU setpoint
     def imu_setpoint(self, setpoint=None):
         if setpoint:
             self.setpoint.data = setpoint
         else:
+            states = self.recorded_states
             y = 0
             x = 0
             for state in self.recorded_states:
@@ -100,12 +99,39 @@ class Driver:
             del self.reported_states[0]
         self.reported_states.append(self.setpoint.data)
         self.state.data = self.setpoint.data
-        print "Setpoint for {} = {} degrees".format(self.sensor, math.degrees(self.setpoint.data))
 
-    # Publish sensor state
-    def publish_state(self, state):
-        self.state.data = state
+
+    # Publish IR sensor state
+    def ir_publish_state(self):
+        states = self.recorded_states
+        std_dev = numpy.std(states)
+        mean = numpy.mean(states)
+        for state in states:
+            if state < mean-std_dev or state > mean+std_dev:
+                states.remove(state)
+        self.state.data = numpy.mean(states)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(state)
+        self.state_pub.publish(self.state)
+
+    # Publish IMU state
+    def imu_publish_state(self, state=None):
+        if state:
+            self.state.data = state
+        else:
+            states = self.recorded_states
+            y = 0
+            x = 0
+            for state in states:
+                y += math.sin(state)
+                x += math.cos(state)
+            self.state.data = math.atan2(y, x)
+            if self.state.data < self.setpoint.data - math.pi:
+                self.state.data += 2*math.pi
+            elif self.state.data > self.setpoint.data + math.pi:
+                self.state.data -= 2*math.pi
+        if len(self.reported_states) >= self.num_states_stored:
+            del self.reported_states[0]
+        self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
