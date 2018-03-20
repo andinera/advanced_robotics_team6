@@ -323,8 +323,12 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             if ir_top_diff > DOOR_THRESHOLD:
                 ir_top_pid.ignore = True
 
-            # use imu wall-following PID controller
+            # use imu wall-following PID controller and reset IMU setpoints
             imu_wall_pid.ignore = False
+            imu_setpoint = imu_wall_pid.state.data
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
+
             robot["state"] = 'doorway'
 
         # passing window
