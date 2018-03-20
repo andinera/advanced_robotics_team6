@@ -6,7 +6,7 @@ from random import uniform
 
 
 if __name__ == '__main__':
-    rospy.init_node('imu_listener', anonymous=True)
+    rospy.init_node('dummy_imu', anonymous=True)
     pub_data = rospy.Publisher('imu/data_raw', Imu, latch=True, queue_size=1)
     pub_mag = rospy.Publisher('imu/mag', MagneticField, latch=True, queue_size=1)
     rate = rospy.Rate(500)

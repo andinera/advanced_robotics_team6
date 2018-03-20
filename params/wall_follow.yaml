@@ -1,14 +1,6 @@
 
-# Status of device being connected
-pololu_connected: true
-imu_connected: true
-# Dummy sensor input if no device input
-dummy_ir_value: 100
-# Utilize sensor input
-bottom_ir: true
-top_ir: true
-imu_wall: true
-imu_corner: true
+# Testing without hardware
+dummy_mode: false
 # Sensor position values
 min: 4095
 max: 7905
