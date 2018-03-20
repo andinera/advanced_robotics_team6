@@ -12,7 +12,7 @@ if __name__ == '__main__':
     ir_state = Float64()
 
     with pololu.Controller(2) as ir_bottom, \
-            pololu.Controller(3) as ir_top,
+            pololu.Controller(3) as ir_top:
         while not rospy.is_shutdown():
             ir_state.data = ir_bottom.get_position()
             ir_bottom_pub.publish(ir_state)
@@ -20,4 +20,4 @@ if __name__ == '__main__':
             ir_state.data = ir_top.get_position()
             ir_top_pub.publish(ir_state)
 
-            rospy.sleep()
+            rate.sleep()

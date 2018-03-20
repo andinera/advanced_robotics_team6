@@ -112,7 +112,7 @@ class Driver:
         self.state.data = numpy.mean(states)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
-        self.reported_states.append(state)
+        self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
 
     # Publish IMU state
