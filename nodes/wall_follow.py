@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
     if ir_bottom_pid.recorded_states[-1] < CORNER_THRESHOLD and ir_top_pid.recorded_states[-1] < CORNER_THRESHOLD \
             and ir_bottom_pid.recorded_states[-1] > 0 and ir_top_pid.recorded_states[-1] > 0:
@@ -235,7 +234,7 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
-                
+
                 robot["state"] = 'wall_follow'
 
         else:
@@ -271,17 +270,28 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     if len(imu_corner_pid.reported_states) < 2:
         return 0
 
+    # Q: How to differentiate between a window and a corner?
+    # I believe that in both cases ir_top_diff and ir_top_error will spike
+    # beyond the corner threshold. In the case of the window: top_ir will return
+    # to a low error value soon after crossing the window, while in the case of
+    # a corner, top_ir error will not return a low error value. Additionally, in
+    # the case of the window, bottom_ir will
+
+    # My belief is that for the window case, both ir_top_error and ir_bottom_error
+    # will not exceed the corner threshold at the same time, whereas, with the
+    # corner, both the bottom and top_ir errors will exceed the corner threshold
+
     # define setpoint error values for state switching logic
-    ir_bottom_error = math.fabs(ir_bottom_pid.setpoint.data - ir_bottom_pid.state.data)
-    ir_top_error = math.fabs(ir_top_pid.setpoint.data - ir_top_pid.state.data)
-    imu_wall_error = math.fabs(imu_wall_pid.setpoint.data - imu_corner_pid.state.data)
-    imu_corner_error = math.fabs(imu_corner_pid.setpoint.data - imu_corner_pid.state.data)
+    ir_bottom_error = math.fabs(ir_bottom_pid.setpoint.data - ir_bottom_pid.state.data)     # [cm]
+    ir_top_error = math.fabs(ir_top_pid.setpoint.data - ir_top_pid.state.data)              # [cm]
+    imu_wall_error = math.fabs(imu_wall_pid.setpoint.data - imu_corner_pid.state.data)      # [rad]
+    imu_corner_error = math.fabs(imu_corner_pid.setpoint.data - imu_corner_pid.state.data)  # [rad]
 
     # finite differencing on state to estimate derivative (divide by timestep?)
-    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])
-    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])
-    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])
-    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2])
+    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])    # [cm]
+    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])             # [cm]
+    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])     # [rad]
+    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2]) # [rad]
 
     #rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
     #rospy.loginfo("Top IR Error:\t%f", ir_top_error)
@@ -293,7 +303,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
         rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
 
-        # either top or bottom IR has detected doorway
+        # either top or bottom IR has detected doorway (works well!)
         if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
             (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
             print "DOORWAY DETECTED"
@@ -308,8 +318,11 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             imu_wall_pid.ignore = False
             robot["state"] = 'doorway'
 
-        # either top or bottom IR has detected corner
-        elif ir_bottom_diff > CORNER_THRESHOLD or ir_top_diff > CORNER_THRESHOLD:
+        # will corner only when both IR sensor errors exceed the corner threshold.
+        # The intention is to prevent a window from being misinterpreted as a corner...
+        # There may be a better way to make this distinction.
+        # elif ir_bottom_diff > CORNER_THRESHOLD or ir_top_diff > CORNER_THRESHOLD:
+        elif ir_bottom_error > CORNER_THRESHOLD and ir_top_diff_error > CORNER_THRESHOLD:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -318,8 +331,9 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             # enable imu_corner_pid
             imu_corner_pid.ignore = False
 
-            # reset IMU setpoint for cornering task
-            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
+            # reset IMU setpoint for cornering task relative to current heading
+            # (this is to account for IMU heading drift)
+            imu_setpoint = imu_wall_pid.state.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -344,6 +358,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
         # switching to the 'doorway' state is currently based on the abs value of the error derivative
         if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
+            print "EXITING DOORWAY"
             ir_bottom_pid.ignore = False
             ir_top_pid.ignore = False
             imu_wall_pid.ignore = True
@@ -352,11 +367,17 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
     elif robot["state"] == 'corner':
         print "CORNERING"
-        if imu_corner_error < IMU_THRESHOLD:
+        if imu_corner_error < IMU_THRESHOLD:    # note: make sure IMU_THRESHOLD is in radians
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
+
+            # the following if statement will never be true if the imu_corner_error
+            # grows large again after it has reached the IMU_THRESHOLD, even if
+            # ir derivates have stabilized. This will likely cause some problems.
+            # Need to think of another way to handle this...
 
             # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD)
             if ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
+                print "EXITING CORNER: IR STATE DERIVATIVES HAVE STABILIZED"
                 # turn IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
@@ -367,10 +388,10 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_pid.state.data), math.degrees(imu_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
 
     else:
-        print "Entered default case in state machine."
+        print "FAULT: Entered default case in state machine."
 
     # Set steering command as average of steering commands that we want to use
     i = 0
@@ -809,11 +830,11 @@ if __name__ == '__main__':
 
     import time
 
-
     from nav_msgs.msg import Odometry
     from std_srvs.srv import Empty
     from tf.transformations import euler_from_quaternion
     import math
+
     POLOLU_CONNECTED = rospy.get_param('~pololu_connected')
     IMU_CONNECTED = rospy.get_param('~imu_connected')
     DUMMY_IR_VALUE = rospy.get_param('~dummy_ir_value')
@@ -828,7 +849,7 @@ if __name__ == '__main__':
     RATE = rospy.get_param('~rate')
     NUM_READINGS = rospy.get_param('~num_readings')
     TOP_IR_ANGLE = rospy.get_param('~top_ir_angle')
-    IMU_THRESHOLD = rospy.get_param('~imu_threshold')
+    IMU_THRESHOLD = math.radians(rospy.get_param('~imu_threshold'))
     DOOR_THRESHOLD = rospy.get_param('~door_threshold')
     CORNER_THRESHOLD = rospy.get_param('~corner_threshold')
     DOOR_ERROR_THRESHOLD = rospy.get_param('~door_error_threshold')
