@@ -132,7 +132,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
 
-    ir_bottom_average_error = math.fabs((ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3)
+    ir_bottom_average_error = math.fabs(ir_bottom_pid.setpoint.data - (ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3)
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
@@ -191,8 +191,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 ir_top_pid.ignore = False
             elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
                 ir_bottom_pid.ignore = True
+                print "ignoring bottom IR while wall following"
             elif ir_top_error > CORNER_ERROR_THRESHOLD:
                 ir_top_pid.ignore = True
+                print "ignoring top IR while wall following"
 
 
     elif robot["state"] == 'doorway':
@@ -202,10 +204,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        if ir_top_error > CORNER_THRESHOLD:
-            ir_top_pid.ignore = True
-            robot["state"] = 'wall_follow'
-            print "exit becasue top corner threshold"
+        #if ir_top_error > CORNER_THRESHOLD:
+            #ir_top_pid.ignore = True
+            #robot["state"] = 'wall_follow'
+            #print "exit becasue top corner threshold"
         elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
             ir_bottom_pid.ignore = True
             robot["state"] = 'wall_follow'
