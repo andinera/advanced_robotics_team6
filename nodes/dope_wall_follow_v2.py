@@ -144,7 +144,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         #    imu_corner_pid.ignore = True
         #    robot["state"] = 'wall_follow'
         #    print "exited turn due to top IR getting closer"
-        if imu_corner_error < math.pi/4.5:
+        if imu_corner_error < math.pi/9:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
@@ -298,7 +298,7 @@ def odroid():
         #rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(MOTOR_SPEED)
+        motor_srv(6200)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
