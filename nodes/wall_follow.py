@@ -632,7 +632,8 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), \
+		math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
 
     else:
         print "FAULT: Entered default case in state machine."
@@ -926,6 +927,7 @@ def madgwick_callback(data, args):
     imu_corner_pid.recorded_states.append(angles[2])
     
     odometry = Odometry()
+    odometry.header = data.header
     odometry.pose.pose.orientation.x = x
     odometry.pose.pose.orientation.y = y
     odometry.pose.pose.orientation.z = z
@@ -1092,7 +1094,7 @@ if __name__ == '__main__':
     # redefine DOOR and CORNER thresholds
     DOOR_THRESHOLD = 150
     CORNER_THRESHOLD = 600
-    IMU_THRESHOLD = math.radians(30)
+    IMU_THRESHOLD = math.radians(15)
 
     try:
         odroid()

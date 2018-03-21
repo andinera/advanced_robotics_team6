@@ -94,6 +94,10 @@ class Driver:
                 x += math.cos(state)
             heading = math.atan2(y, x)
             self.setpoint.data = heading
+        if self.setpoint.data > math.pi:
+            self.setpoint.data -= 2*math.pi
+        elif self.setpoint.data < -math.pi:
+            self.setpoint.data += math.pi
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
