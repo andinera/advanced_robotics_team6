@@ -27,3 +27,6 @@ corner_threshold: 375
 imu_reset_threshold: 3
 # Number of previous sensor states to save
 num_states_stored: 10
+
+#Top Corner Error threshold
+top_corner_error_threshold: 275

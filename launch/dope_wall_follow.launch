@@ -43,7 +43,7 @@
         <rosparam command="load" file="$(find advanced_robotics_team6)/params/top_ir_pid.yaml"/>
      </node>
 
-     <node pkg="advanced_robotics_team6" type="wall_follow_test2.py" name="odroid_node1" output="screen">
+     <node pkg="advanced_robotics_team6" type="dope_wall_follow.py" name="odroid_node1" output="screen">
          <rosparam command="load" file="$(find advanced_robotics_team6)/params/wall_follow.yaml" />
     </node>
 
