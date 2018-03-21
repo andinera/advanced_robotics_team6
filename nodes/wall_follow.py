@@ -579,7 +579,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         # switching to the 'doorway' state is currently based on the abs value of the error derivative
         if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and \
            (ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD):
-            print "EXITING DOORWAY"
+            print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             ir_bottom_pid.ignore = False
             ir_top_pid.ignore = False
             imu_wall_pid.ignore = True
@@ -1083,7 +1083,7 @@ if __name__ == '__main__':
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
 
     # redefine DOOR and CORNER thresholds
-    DOOR_THRESHOLD = 210
+    DOOR_THRESHOLD = 150
     CORNER_THRESHOLD = 600
     IMU_THRESHOLD = math.radians(20)
 

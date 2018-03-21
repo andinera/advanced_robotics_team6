@@ -428,7 +428,7 @@ def odroid():
 if __name__ == '__main__':
 
     # Initialize node
-    rospy.init_node('odroid_node', anonymous=True)
+    rospy.init_node('odroid_node1', anonymous=True)
 
     # Import param
     DUMMY_MODE = rospy.get_param('~dummy_mode')
