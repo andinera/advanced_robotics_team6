@@ -117,7 +117,7 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
 
 def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
-    if len(imu_corner_pid.reported_states) < 9:
+    if len(imu_corner_pid.reported_states) < 2:
         return 0
 
     # define setpoint error values for state switching logic
@@ -127,10 +127,12 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_corner_error = math.fabs(imu_corner_pid.setpoint.data - imu_corner_pid.state.data)
 
     # finite differencing on state to estimate derivative (divide by timestep?)
-    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-9])
-    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-9])
-    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
-    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
+
+    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])
+    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])
+    ir_top_difference = ir_top_pid.state.data - ir_top_pid.reported_states[-2]
+    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])
+    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2])
 
     ir_bottom_average_error = math.fabs(ir_bottom_pid.setpoint.data - (ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3)
 
@@ -141,7 +143,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 50:
+        if ir_bottom_error > 750:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -230,7 +232,14 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
     elif robot["state"] == 'corner':
         print "CORNERING"
-        if imu_corner_error < math.pi/4.5:
+        if imu_corner_error > math.radians(80) and ir_top_difference < -20:
+            ir_bottom_pid.ignore = False
+            ir_top_pid.ignore = False
+            imu_wall_pid.ignore = True
+            imu_corner_pid.ignore = True
+            robot["state"] = 'wall_follow'
+            print "exited turn due to top IR getting closer"
+        elif imu_corner_error < math.pi/4.5:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
