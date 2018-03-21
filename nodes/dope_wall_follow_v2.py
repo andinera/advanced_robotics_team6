@@ -149,7 +149,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # both IR errors are less than corner state
 
-            if ir_top_error < CORNER_ERROR_THRESHOLD and ir_bottom_error < CORNER_ERROR_THRESHOLD \
+            if ir_top_error < DOOR_THRESHOLD and ir_bottom_error < DOOR_THRESHOLD \
             and ir_bottom_diff < DOOR_THRESHOLD:
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False
