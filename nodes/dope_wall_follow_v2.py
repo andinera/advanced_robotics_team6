@@ -141,7 +141,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 150:
+        if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 50:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -208,10 +208,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #ir_top_pid.ignore = True
             #robot["state"] = 'wall_follow'
             #print "exit becasue top corner threshold"  
-        if ir_bottom_error > CORNER_ERROR_THRESHOLD:
+        if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 50:
             ir_bottom_pid.ignore = True
-            robot["state"] = 'wall_follow'
-            print "exit because bottom corner threshold"
+            robot["state"] = 'corner'
+            print "exit to corner because bottom corner threshold"
         else:
             if ir_bottom_error > DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = True
@@ -383,11 +383,11 @@ def odroid():
         #steering.set_target(CENTER)
         rospy.sleep(1)
 
-        motor_srv(6400)
-        rospy.sleep(1)
+        #motor_srv(6400)
+        #rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(MOTOR_SPEED + 50)
+        motor_srv(MOTOR_SPEED)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
