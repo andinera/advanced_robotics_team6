@@ -149,8 +149,9 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
+            imu_setpoint = 0
             headings = imu_wall_pid.recorded_states
-            for i in range(-1,-9,-1)
+            for i in range(-1,-9,-1):
                 imu_setpoint = imu_setpoint + headings[i]/8
 
             imu_setpoint = imu_setpoint - math.radians(90)
@@ -165,9 +166,9 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
-
+            imu_setpoint = 0
             headings = imu_wall_pid.recorded_states
-            for i in range(-1,-9,-1)
+            for i in range(-1,-9,-1):
                 imu_setpoint = imu_setpoint + headings[i]/8
 
             imu_wall_pid.imu_setpoint(imu_setpoint)
