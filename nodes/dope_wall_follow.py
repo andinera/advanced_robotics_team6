@@ -246,7 +246,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 robot["state"] = 'corner'
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}",format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
 
     else:
         print "Entered default case in state machine."
