@@ -9,10 +9,12 @@ motor_cmd = 0
 steering_cmd = 0
 
 def motor_handler(req):
+    global motor_cmd
     motor_cmd = req.data
     return PololuCmdResponse()
 
 def steering_handler(req):
+    global steering_cmd
     steering_cmd = req.data
     return PololuCmdResponse()
 
