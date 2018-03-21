@@ -109,7 +109,7 @@ class Driver:
         for state in states[:]:
                 if state < mean-std_dev or state > mean+std_dev:
                     states.remove(state)
-        self.state.data = numpy.mean(del_states)
+        self.state.data = numpy.mean(states)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)

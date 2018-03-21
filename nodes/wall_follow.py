@@ -505,9 +505,9 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         print "WALL-FOLLOW"
 
         # either top or bottom IR has detected doorway (works well!)
-        #if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
-        #    (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
-        if ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD:
+        if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
+            (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+        #if ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD:
             print "DOORWAY DETECTED"
 
             # ignore IR sensor that has detected doorway
@@ -577,8 +577,11 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
         # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
         # switching to the 'doorway' state is currently based on the abs value of the error derivative
-        if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and \
-           (ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD):
+        #if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and \
+        #   (ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD):
+        if (ir_bottom_error <30 and ir_top_error < 30) and \
+           (ir_bottom_diff < 30 and ir_top_diff < 30):
+
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             ir_bottom_pid.ignore = False
             ir_top_pid.ignore = False
@@ -587,7 +590,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             robot["state"] = 'wall_follow'
 
         # needs further tuning
-        elif ir_bottom_error > 600 and ir_top_error > 400:
+        elif ir_bottom_error > 600 and ir_top_error > 100:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
 
             ir_bottom_pid.ignore = True
@@ -1086,7 +1089,7 @@ if __name__ == '__main__':
     # redefine DOOR and CORNER thresholds
     DOOR_THRESHOLD = 150
     CORNER_THRESHOLD = 600
-    IMU_THRESHOLD = math.radians(20)
+    IMU_THRESHOLD = math.radians(30)
 
     try:
         odroid()
