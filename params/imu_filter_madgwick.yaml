@@ -1,12 +1,12 @@
-gain: 0.001
+gain: 0.00001
 zeta: 0.0
 mag_bias_x: 0.0
 mag_bias_y: 0.0
 mag_bias_z: 0.0
 orientation_stddev: 0.0
 world_frame: enu
-use_mag: true
-use_magnetic_field_msg: true
+use_mag: false
+use_magnetic_field_msg: false
 fixed_frame: odom
 publish_tf: true
 reverse_tf: false
