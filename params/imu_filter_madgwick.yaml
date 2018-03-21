@@ -1,4 +1,4 @@
-gain: 0.1
+gain: 0.01
 zeta: 0.0
 mag_bias_x: 0.0
 mag_bias_y: 0.0
