@@ -257,24 +257,24 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not ir_top_pid.ignore:
         i += 1
         steering_cmd += ir_top_pid.control_effort
-        rospy.loginfo("steering_cmd_top:\t{}",ir_top_pid.control_effort)
+        rospy.loginfo("steering_cmd_top:\t{}".format(ir_top_pid.control_effort))
     if not ir_bottom_pid.ignore:
         i += 1
         steering_cmd += ir_bottom_pid.control_effort
-        rospy.loginfo("steering_cmd_bottom:\t{}",ir_bottom_pid.control_effort)
+        rospy.loginfo("steering_cmd_bottom:\t{}".format(ir_bottom_pid.control_effort))
 
     if not imu_wall_pid.ignore:
         i += 1
         steering_cmd += imu_wall_pid.control_effort
-        rospy.loginfo("steering_cmd_wall:\t{}",imu_wall_pid.control_effort)
+        rospy.loginfo("steering_cmd_wall:\t{}".format(imu_wall_pid.control_effort))
 
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
-        rospy.loginfo("steering_cmd_corner:\t{}",imu_corner_pid.control_effort)
+        rospy.loginfo("steering_cmd_corner:\t{}".format(imu_corner_pid.control_effort))
 
     steering_cmd /= i
-    rospy.loginfo("steering_cmd:\t{}",steering_cmd)
+    rospy.loginfo("steering_cmd:\t{}".format(steering_cmd))
 
     return steering_cmd
 
