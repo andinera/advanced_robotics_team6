@@ -52,8 +52,11 @@ if __name__ == "__main__":
 
             getch = _Getch()
 
-            rate = rospy.Rate(50)
+            
 
+            rate = rospy.Rate(50)
+            motor_cmd = 6250
+            motor.set_target(motor_cmd)
             while not rospy.is_shutdown():
 
                 cmd = getch()
@@ -70,8 +73,10 @@ if __name__ == "__main__":
                     steering_cmd += 100
                     steering.set_target(steering_cmd)
                 if cmd ==  ' ':
-                    motor.set_target(6000)
-                    steering.set_target(6000)
+                    motor_cmd = 6000
+                    steering_cmd = 6000
+                    motor.set_target(motor_cmd)
+                    steering.set_target(steering_cmd)
                 if ord(cmd) ==  127:
                     motor.set_target(6000)
                     steering.set_target(6000)

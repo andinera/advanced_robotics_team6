@@ -117,7 +117,7 @@ def kodiesStateMachine1(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_p
 
 def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
-    if len(imu_corner_pid.reported_states) < 2:
+    if len(imu_corner_pid.reported_states) < 4:
         return 0
 
     # define setpoint error values for state switching logic
@@ -213,6 +213,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 50:
             ir_bottom_pid.ignore = True
             robot["state"] = 'corner'
+            imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
+            
             print "exit to corner because bottom corner threshold"
         else:
             if ir_bottom_error > DOOR_THRESHOLD:
