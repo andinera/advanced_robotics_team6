@@ -207,8 +207,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         #if ir_top_error > CORNER_THRESHOLD:
             #ir_top_pid.ignore = True
             #robot["state"] = 'wall_follow'
-            #print "exit becasue top corner threshold"
-        elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
+            #print "exit becasue top corner threshold"  
+        if ir_bottom_error > CORNER_ERROR_THRESHOLD:
             ir_bottom_pid.ignore = True
             robot["state"] = 'wall_follow'
             print "exit because bottom corner threshold"
