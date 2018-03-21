@@ -4,6 +4,7 @@ import rospy
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
+from nav_msgs.msg import Odometry
 from advanced_robotics_team6.srv import PololuCmd
 from tf.transformations import euler_from_quaternion
 import math
@@ -520,9 +521,9 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
             # use imu wall-following PID controller and (maybe?) reset IMU setpoints
             imu_wall_pid.ignore = False
-            #imu_setpoint = imu_wall_pid.state.data
-            #imu_wall_pid.imu_setpoint(imu_setpoint)
-            #imu_corner_pid.imu_setpoint(imu_setpoint)
+            imu_setpoint = imu_wall_pid.state.data
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
 
             robot["state"] = 'doorway'
 
@@ -568,7 +569,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         print "DOORWAY"
 
         if ir_bottom_error > DOOR_THRESHOLD and not ir_bottom_pid.ignore:
-            print "DISABLE BOTT)M IR PID"
+            print "DISABLE BOTTOM IR PID"
             ir_bottom_pid.ignore = True
         if ir_top_error > DOOR_THRESHOLD and not ir_top_pid.ignore:
             print "SHOULD NOT PRINT: DISABLE TOP IR PID"
@@ -579,7 +580,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         # switching to the 'doorway' state is currently based on the abs value of the error derivative
         #if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and \
         #   (ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD):
-        if (ir_bottom_error <30 and ir_top_error < 30) and \
+        if (ir_bottom_error < 50 and ir_top_error < 50) and \
            (ir_bottom_diff < 30 and ir_top_diff < 30):
 
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
@@ -631,7 +632,8 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), \
+		math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
 
     else:
         print "FAULT: Entered default case in state machine."
@@ -911,6 +913,7 @@ def heuristic2(ir_bottom_pid, ir_top_pid, imu_pid):
 def madgwick_callback(data, args):
     imu_wall_pid = args[0]
     imu_corner_pid = args[1]
+    sensor_odometry_pub = args[2]
     x = data.orientation.x
     y = data.orientation.y
     z = data.orientation.z
@@ -922,6 +925,14 @@ def madgwick_callback(data, args):
     if len(imu_corner_pid.recorded_states) >= NUM_READINGS:
         del imu_corner_pid.recorded_states[0]
     imu_corner_pid.recorded_states.append(angles[2])
+    
+    odometry = Odometry()
+    odometry.header = data.header
+    odometry.pose.pose.orientation.x = x
+    odometry.pose.pose.orientation.y = y
+    odometry.pose.pose.orientation.z = z
+    odometry.pose.pose.orientation.w = w
+    sensor_odometry_pub.publish(odometry)
 
 
 # Callbacks for recording data from top IR sensor
@@ -979,11 +990,15 @@ def odroid():
                                       ir_top_callback,
                                       ir_top_pid)
 
+        sensor_odometry_pub = rospy.Publisher("imu/odometry",
+                                              Odometry,
+                                              queue_size=1)
+
         # Initialize subscriber for IMU
         madgwick_sub = rospy.Subscriber("imu/data_madgwick",
                                         Imu,
                                         madgwick_callback,
-                                        [imu_wall_pid,imu_corner_pid])
+                                        [imu_wall_pid,imu_corner_pid, sensor_odometry_pub])
 
         # Send setpoints to PIDs
         # Wait for recorded sensor data before publishing setpoint
@@ -1079,7 +1094,7 @@ if __name__ == '__main__':
     # redefine DOOR and CORNER thresholds
     DOOR_THRESHOLD = 150
     CORNER_THRESHOLD = 600
-    IMU_THRESHOLD = math.radians(30)
+    IMU_THRESHOLD = math.radians(15)
 
     try:
         odroid()
