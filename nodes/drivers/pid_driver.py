@@ -68,10 +68,10 @@ class Driver:
 
     # Initialize IR setpoint
     def ir_setpoint(self):
-        states = self.recorded_states
+        states = self.recorded_states[:]
         std_dev = numpy.std(states)
         mean = numpy.mean(states)
-        for state in states:
+        for state in states[:]:
             if state < mean-std_dev or state > mean+std_dev:
                 states.remove(state)
         self.setpoint.data = numpy.mean(states)
@@ -86,10 +86,10 @@ class Driver:
         if setpoint:
             self.setpoint.data = setpoint
         else:
-            states = self.recorded_states
+            states = self.recorded_states[:]
             y = 0
             x = 0
-            for state in self.recorded_states:
+            for state in states[:]:
                 y += math.sin(state)
                 x += math.cos(state)
             heading = math.atan2(y, x)
@@ -103,14 +103,13 @@ class Driver:
 
     # Publish IR sensor state
     def ir_publish_state(self):
-        states = self.recorded_states
+        states = self.recorded_states[:]
         std_dev = numpy.std(states)
         mean = numpy.mean(states)
         for state in states[:]:
-            for state in states[:]:    # added "double" loop
                 if state < mean-std_dev or state > mean+std_dev:
                     states.remove(state)
-        self.state.data = numpy.mean(states)
+        self.state.data = numpy.mean(del_states)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
@@ -121,10 +120,10 @@ class Driver:
         if state:
             self.state.data = state
         else:
-            states = self.recorded_states
+            states = self.recorded_states[:]
             y = 0
             x = 0
-            for state in states:
+            for state in states[:]:
                 y += math.sin(state)
                 x += math.cos(state)
             self.state.data = math.atan2(y, x)
