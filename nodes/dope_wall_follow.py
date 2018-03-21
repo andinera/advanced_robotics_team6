@@ -132,11 +132,6 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
 
-    #rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
-    #rospy.loginfo("Top IR Error:\t%f", ir_top_error)
-    #rospy.loginfo("IMU WALL Error:\t%f", imu_wall_error)
-    #rospy.loginfo("IMU CORNER Error:\t%f", imu_corner_error)
-
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
@@ -144,7 +139,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > CORNER_ERROR_THRESHOLD and ir_top_pid.state.data > TOP_CORNER_ERROR_THRESHOLD:
+        if ir_bottom_error > CORNER_ERROR_THRESHOLD and ir_top_error > DOOR_THRESHOLD:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -154,7 +149,11 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
-            imu_setpoint = imu_wall_pid.state.data - math.radians(90)
+            headings = imu_wall_pid.recorded_states
+            for i in range(-1,-9,-1)
+                imu_setpoint = imu_setpoint + headings[i]/8
+
+            imu_setpoint = imu_setpoint - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -166,7 +165,11 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
-            imu_setpoint = imu_wall_pid.state.data
+
+            headings = imu_wall_pid.recorded_states
+            for i in range(-1,-9,-1)
+                imu_setpoint = imu_setpoint + headings[i]/8
+
             imu_wall_pid.imu_setpoint(imu_setpoint)
             # ignore IR sensor that has detected doorway
             if ir_bottom_diff > DOOR_THRESHOLD:
@@ -196,7 +199,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        if ir_top_pid.state.data > CORNER_ERROR_THRESHOLD:
+        if ir_top_error > CORNER_THRESHOLD:
             ir_top_pid.ignore = True
             robot["state"] = 'wall_follow'
             print "exit becasue top corner threshold"
@@ -212,16 +215,13 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 ir_top_pid.ignore = True
                 print "test2"
 
-            # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
-            # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
-            # switching to the 'doorway' state is currently based on the abs value of the error derivative
-            if ir_bottom_error < 0.7*DOOR_THRESHOLD and ir_top_error < 0.7*DOOR_THRESHOLD:
+            if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True
-                print "doorway before wall_follow"
 
                 robot["state"] = 'wall_follow'
+                print "Exited Doorway with standard method"
 
     elif robot["state"] == 'corner':
         print "CORNERING"
@@ -241,14 +241,12 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 robot["state"] = 'wall_follow'
 
             elif ir_top_error < CORNER_ERROR_THRESHOLD:
-                print "only using top ir sensor"
                 # turn top IR PID control back on
                 ir_bottom_pid.ignore = True
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True     # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
-
-                robot["state"] = 'corner'
+                print "Using top ir sensor for wall follow"
         else:
             # log imu_corner_pid state and setpoint error during turn
             rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
@@ -262,21 +260,21 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not ir_top_pid.ignore:
         i += 1
         steering_cmd += ir_top_pid.control_effort
-        rospy.loginfo("steering_cmd_top:\t{}".format(ir_top_pid.control_effort))
+        #rospy.loginfo("steering_cmd_top:\t{}".format(ir_top_pid.control_effort))
     if not ir_bottom_pid.ignore:
         i += 1
         steering_cmd += ir_bottom_pid.control_effort
-        rospy.loginfo("steering_cmd_bottom:\t{}".format(ir_bottom_pid.control_effort))
+        #rospy.loginfo("steering_cmd_bottom:\t{}".format(ir_bottom_pid.control_effort))
 
     if not imu_wall_pid.ignore:
         i += 1
         steering_cmd += imu_wall_pid.control_effort
-        rospy.loginfo("steering_cmd_wall:\t{}".format(imu_wall_pid.control_effort))
+        #rospy.loginfo("steering_cmd_wall:\t{}".format(imu_wall_pid.control_effort))
 
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
-        rospy.loginfo("steering_cmd_corner:\t{}".format(imu_corner_pid.control_effort))
+        #rospy.loginfo("steering_cmd_corner:\t{}".format(imu_corner_pid.control_effort))
 
     steering_cmd /= i
     rospy.loginfo("steering_cmd:\t{}".format(steering_cmd))
@@ -380,11 +378,11 @@ def odroid():
         #steering.set_target(CENTER)
         rospy.sleep(1)
 
-        # motor_srv(6500)
-        # rospy.sleep(1)
+        motor_srv(6400)
+        rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(MOTOR_SPEED)
+        motor_srv(MOTOR_SPEED + 50)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
@@ -468,9 +466,9 @@ if __name__ == '__main__':
 
 
     # redefine DOOR and CORNER thresholds
-    DOOR_THRESHOLD = 150
-    CORNER_THRESHOLD = 600
-    IMU_THRESHOLD = math.radians(20)
+    #DOOR_THRESHOLD = 150
+    #CORNER_THRESHOLD = 600
+    #IMU_THRESHOLD = math.radians(20)
 
     try:
         odroid()
