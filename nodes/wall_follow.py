@@ -496,31 +496,29 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])     # [rad]
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2]) # [rad]
 
-    #rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
-    #rospy.loginfo("Top IR Error:\t%f", ir_top_error)
-    #rospy.loginfo("IMU WALL Error:\t%f", imu_wall_error)
-    #rospy.loginfo("IMU CORNER Error:\t%f", imu_corner_error)
+    rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
+    rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
+    rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
+    rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
-        rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
-        rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-        rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
         # either top or bottom IR has detected doorway (works well!)
-        # if ir_bottom_error > DOOR_THRESHOLD and ir_bottom_error < CORNER_THRESHOLD:
-        if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
-            (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+        #if (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD) or \
+        #    (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD):
+        if ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD:
             print "DOORWAY DETECTED"
 
             # ignore IR sensor that has detected doorway
             if ir_bottom_diff > DOOR_THRESHOLD:
+                print "DISABLE TOP IR PID"
                 ir_bottom_pid.ignore = True
             if ir_top_diff > DOOR_THRESHOLD:
+                # should not execute
                 ir_top_pid.ignore = True
 
-            # use imu wall-following PID controller and reset IMU setpoints
+            # use imu wall-following PID controller and (maybe?) reset IMU setpoints
             imu_wall_pid.ignore = False
             #imu_setpoint = imu_wall_pid.state.data
             #imu_wall_pid.imu_setpoint(imu_setpoint)
@@ -559,19 +557,21 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             robot["state"] = 'corner'
 
         else:
-            pass
+            if ir_top_error > 110 and not ir_top_pid.ignore:
+                print "DISABLING TOP IR IN DEFAULT CASE"
+                ir_top_pid.ignore = True
+            else:
+                ir_top_pid.ignore = False
             # do nothing: continue wall-following
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
-        rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
-        rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-        rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        if ir_bottom_error > DOOR_THRESHOLD:
+        if ir_bottom_error > DOOR_THRESHOLD and not ir_bottom_pid.ignore:
+            print "DISABLE BOTT)M IR PID"
             ir_bottom_pid.ignore = True
-        if ir_top_error > DOOR_THRESHOLD:
+        if ir_top_error > DOOR_THRESHOLD and not ir_top_pid.ignore:
+            print "SHOULD NOT PRINT: DISABLE TOP IR PID"
             ir_top_pid.ignore = True
 
         # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
@@ -586,9 +586,10 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
             robot["state"] = 'wall_follow'
 
+        # needs further tuning
         elif ir_bottom_error > 600 and ir_top_error > 400:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
-            
+
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
             imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
@@ -949,7 +950,7 @@ def odroid():
 
         # Listed imus for printing
         pids = [ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid]
-   
+
         rospy.wait_for_service('motor_cmd')
         rospy.wait_for_service('steering_cmd')
         motor_srv = rospy.ServiceProxy('motor_cmd', PololuCmd)
@@ -996,7 +997,7 @@ def odroid():
         # Set zero intial velocity and steering
         motor_srv(CENTER)
         steering_srv(CENTER)
-        
+
         #motor.set_target(CENTER)
         #steering.set_target(CENTER)
         rospy.sleep(1)
