@@ -979,10 +979,6 @@ def odroid():
                                       ir_top_callback,
                                       ir_top_pid)
 
-        #for _ in range(NUM_READINGS):
-        #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
-        #    ir_top_callback(ir_top.get_position(), ir_top_pid)
-
         # Initialize subscriber for IMU
         madgwick_sub = rospy.Subscriber("imu/data_madgwick",
                                         Imu,
@@ -990,7 +986,7 @@ def odroid():
                                         [imu_wall_pid,imu_corner_pid])
 
         # Send setpoints to PIDs
-        # Wait for recorded IMU data before publishing setpoint
+        # Wait for recorded sensor data before publishing setpoint
         rospy.sleep(0.25)
         imu_corner_pid.imu_setpoint()
         imu_wall_pid.imu_setpoint(imu_corner_pid.setpoint.data)
@@ -1000,9 +996,6 @@ def odroid():
         # Set zero intial velocity and steering
         motor_srv(CENTER)
         steering_srv(CENTER)
-
-        #motor.set_target(CENTER)
-        #steering.set_target(CENTER)
         rospy.sleep(1)
 
         # Set forward speed
@@ -1020,13 +1013,10 @@ def odroid():
 
         time_since_turn = rospy.get_time()
 
-        # Count iterations: can be used for debugging or other miscellaneous needs
+        # Count iterations
+        # Can be used for debugging or other miscellaneous needs
         count = 0
         while not rospy.is_shutdown():
-
-            #for _ in range(NUM_READINGS):
-            #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
-            #    ir_top_callback(ir_top.get_position(), ir_top_pid)
 
             # Publish sensor states
             ir_bottom_pid.ir_publish_state()
