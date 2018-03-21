@@ -34,7 +34,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > CORNER_ERROR_THRESHOLD and ir_top_error > DOOR_THRESHOLD:
+        if ir_bottom_error > CORNER_ERROR_THRESHOLD and ir_top_pid.state.data > TOP_CORNER_ERROR_THRESHOLD:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -44,7 +44,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
-            imu_setpoint = imu_setpoint - math.radians(90)
+            imu_setpoint = imu_corner_pid.state.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -86,7 +86,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        if ir_top_error > CORNER_THRESHOLD:
+        if ir_top_pid.state.data > CORNER_ERROR_THRESHOLD:
             ir_top_pid.ignore = True
             robot["state"] = 'wall_follow'
             print "exit becasue top corner threshold"
@@ -133,6 +133,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True     # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
+
+                robot["state"] = 'corner'
                 print "Using top ir sensor for wall follow"
         else:
             # log imu_corner_pid state and setpoint error during turn
@@ -265,11 +267,8 @@ def odroid():
         #steering.set_target(CENTER)
         rospy.sleep(1)
 
-        motor_srv(6400)
-        rospy.sleep(1)
-
         # Set forward speed
-        motor_srv(MOTOR_SPEED + 50)
+        motor_srv(MOTOR_SPEED)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
