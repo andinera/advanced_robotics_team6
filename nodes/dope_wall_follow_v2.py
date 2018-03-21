@@ -132,7 +132,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
 
-    ir_bottom_average_error = math.fabs((ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3
+    ir_bottom_average_error = math.fabs((ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3)
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
