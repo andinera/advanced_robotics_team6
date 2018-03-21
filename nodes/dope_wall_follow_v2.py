@@ -137,14 +137,14 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_setpoint:\t%f", ir_bottom_pid.setpoint.data)
         rospy.loginfo("ir_top_setpoint:\t%f", ir_top_pid.setpoint.data)
         rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
-        if imu_corner_error > math.radians(85) and ir_top_difference < 0 and ir_top_pid.state.data < ir_top_pid.setpoint.data :
-            ir_bottom_pid.ignore = False
-            ir_top_pid.ignore = False
-            imu_wall_pid.ignore = True
-            imu_corner_pid.ignore = True
-            robot["state"] = 'wall_follow'
-            print "exited turn due to top IR getting closer"
-        elif imu_corner_error < math.pi/4.5:
+        #if imu_corner_error > math.radians(85) and ir_top_difference < 0 and ir_top_pid.state.data < ir_top_pid.setpoint.data :
+        #ir_bottom_pid.ignore = False
+        #    ir_top_pid.ignore = False
+        #    imu_wall_pid.ignore = True
+        #    imu_corner_pid.ignore = True
+        #    robot["state"] = 'wall_follow'
+        #    print "exited turn due to top IR getting closer"
+        if imu_corner_error < math.pi/4.5:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
