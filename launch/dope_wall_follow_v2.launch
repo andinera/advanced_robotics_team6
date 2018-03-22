@@ -35,12 +35,12 @@
 
     <!-- Initialize bottom IR PID -->
     <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >
-        <rosparam command="load" file="$(find advanced_robotics_team6)/params/bottom_ir_pid.yaml"/>
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/dope_params.yaml"/>
      </node>
 
      <!-- Initialize top IR PID -->
     <node name="ir_top_pid" pkg="pid" type="controller" output="screen" >
-        <rosparam command="load" file="$(find advanced_robotics_team6)/params/top_ir_pid.yaml"/>
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/dope_params.yaml"/>
      </node>
 
      <node pkg="advanced_robotics_team6" type="dope_wall_follow_v2.py" name="odroid_node1" output="screen">
