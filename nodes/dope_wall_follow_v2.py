@@ -50,7 +50,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # reset IMU setpoint for cornering task
            
-            imu_setpoint = imu_wall_pid.setpoint - math.radians(90)
+            imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -74,7 +74,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 	    if ir_bottom_error < 5 and ir_top_error < 5:
 		# reset IMU setpoint for cornering task
             	imu_setpoint = 0
-            	headings = imu_wall_pid.recorded_states
+            	headings = imu_wall_pid.recorded_states[:]
             	for i in range(-1,-9,-1):
                     imu_setpoint = imu_setpoint + headings[i]/8
 
@@ -109,7 +109,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
             #imu_wall_pid.imu_setpoint(imu_setpoint)
             #imu_corner_pid.imu_setpoint(imu_setpoint)
-	    robot["state"] = 'wall_follow'
+    	    robot["state"] = 'wall_follow'
             print "exit to wall_follow because bottom corner threshold"
 
         elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
@@ -387,4 +387,3 @@ if __name__ == '__main__':
         odroid()
     except rospy.ROSInterruptException:
         pass
-atom
