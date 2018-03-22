@@ -296,7 +296,7 @@ def odroid():
         #rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(6300)
+        motor_srv(6250)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
@@ -380,8 +380,8 @@ if __name__ == '__main__':
     TOP_C_MAX = 500
     BOTTOM_C_MIN = 1000
     TOP_D_MIN = 500
-    BOTTOM_D_MIN = 200
-    BOTTOM_D_MAX = 1000
+    BOTTOM_D_MIN = 90
+    BOTTOM_D_MAX = 1100
 
 
 

@@ -12,7 +12,7 @@ from tf.transformations import euler_from_quaternion
 from drivers import pid_driver
 
 # used for recording data
-WRITE_DATA = True
+WRITE_DATA = False
 if WRITE_DATA:
     print "OPENING CSV"
     csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_blockedwindow_1.csv", 'a')
