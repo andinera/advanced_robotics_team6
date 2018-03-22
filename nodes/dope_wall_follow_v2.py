@@ -49,12 +49,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.ignore = False
 
             # reset IMU setpoint for cornering task
-            imu_setpoint = 0
-            headings = imu_wall_pid.recorded_states
-            for i in range(-1,-9,-1):
-                imu_setpoint = imu_setpoint + headings[i]/8
-
-            imu_setpoint = imu_setpoint - math.radians(90)
+           
+            imu_setpoint = imu_wall_pid.setpoint - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -62,13 +58,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         elif ir_top_error > TOP_D_MIN or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX):
 
             print "DOORWAY DETECTED"
-            # reset IMU setpoint for cornering task
-            imu_setpoint = 0
-            headings = imu_wall_pid.recorded_states
-            for i in range(-1,-9,-1):
-                imu_setpoint = imu_setpoint + headings[i]/8
-
-            imu_wall_pid.imu_setpoint(imu_setpoint)
+           
             # ignore IR sensor that has detected doorway
             if ir_bottom_diff > DOOR_THRESHOLD:
                 ir_bottom_pid.ignore = True
@@ -81,6 +71,16 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
         else:
             #protect against entering or exiting a corner
+	    if ir_bottom_error < 5 and ir_top_error < 5:
+		# reset IMU setpoint for cornering task
+            	imu_setpoint = 0
+            	headings = imu_wall_pid.recorded_states
+            	for i in range(-1,-9,-1):
+                    imu_setpoint = imu_setpoint + headings[i]/8
+
+            	imu_wall_pid.imu_setpoint(imu_setpoint)
+		imu_corner_pid.imu_setpoint(imu_setpoint)
+
             if ir_bottom_error < BOTTOM_C_MIN and ir_top_error < TOP_C_MIN:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
@@ -296,7 +296,7 @@ def odroid():
         #rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(6200)
+        motor_srv(6300)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
