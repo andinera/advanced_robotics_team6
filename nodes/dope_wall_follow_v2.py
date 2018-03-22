@@ -47,7 +47,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX:
+        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -68,10 +68,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             print "DOORWAY DETECTED"
            
             # ignore IR sensor that has detected doorway
-            if ir_bottom_diff > DOOR_THRESHOLD:
-                ir_bottom_pid.ignore = True
-            if ir_top_diff > DOOR_THRESHOLD:
-                ir_top_pid.ignore = True
+            ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
 
             # use imu wall-following PID controller
             imu_wall_pid.ignore = False
@@ -157,6 +155,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 imu_corner_pid.ignore = True
 
                 robot["state"] = 'wall_follow'
+		imu_corner_pid.turns_completed += 1
 
             elif ir_top_error < TOP_C_MIN:
                 # turn top IR PID control back on
@@ -308,7 +307,7 @@ def odroid():
         robot = {"state": "wall_follow"}
         imu_wall_pid.ignore = True
         imu_corner_pid.ignore = True
-
+	imu_corner_pid.turns_completed = 0
         time_since_turn = rospy.get_time()
 
         # Count iterations: can be used for debugging or other miscellaneous needs
