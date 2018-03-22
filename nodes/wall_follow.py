@@ -189,7 +189,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
         # corner detected - these values can be decreased
-    elif ir_top_error > 10000 or ir_top_diff > 10000:
+        elif ir_top_error > 10000 or ir_top_diff > 10000:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
 
@@ -878,7 +878,8 @@ def odroid():
             # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
-            steering_cmd = stateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            # steering_cmd = stateMachine_ccs(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
@@ -929,8 +930,6 @@ if __name__ == '__main__':
     STEERING_CENTER = rospy.get_param('~steering_center')
 
     # redefine DOOR and CORNER thresholds
-    DOOR_THRESHOLD = 150
-    CORNER_THRESHOLD = 600
     IMU_THRESHOLD = math.radians(15)
 
     try:

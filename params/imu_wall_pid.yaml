@@ -4,8 +4,8 @@ Kp: -6000.0
 Ki: -0.0
 Kd: -0.0
 # [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905
-upper_limit: 1905
-lower_limit: -1905
+upper_limit: 2105
+lower_limit: -1705
 # Advanced parameters
 windup_limit: 10
 cutoff_frequency: 12
