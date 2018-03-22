@@ -103,29 +103,22 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #ir_top_pid.ignore = True
             #robot["state"] = 'wall_follow'
             #print "exit becasue top corner threshold"
-        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX:
-            ir_bottom_pid.ignore = True
-            robot["state"] = 'corner'
-            imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
-            imu_wall_pid.imu_setpoint(imu_setpoint)
-            imu_corner_pid.imu_setpoint(imu_setpoint)
+        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and ir_top_diff < 100:
+            #ir_bottom_pid.ignore = True
+            #robot["state"] = 'corner'
+            #imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
+            #imu_wall_pid.imu_setpoint(imu_setpoint)
+            #imu_corner_pid.imu_setpoint(imu_setpoint)
+	    robot["state"] = 'wall_follow'
+            print "exit to wall_follow because bottom corner threshold"
 
-            print "exit to corner because bottom corner threshold"
-        else:
-            if ir_bottom_error > BOTTOM_D_MIN:
-                ir_bottom_pid.ignore = True
-                print "test1"
-            if ir_top_error > TOP_D_MIN:
-                ir_top_pid.ignore = True
-                print "test2"
+        elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
+            ir_bottom_pid.ignore = False
+            ir_top_pid.ignore = False
+            imu_wall_pid.ignore = True
 
-            if ir_bottom_error < 100 and ir_top_error < 100:
-                ir_bottom_pid.ignore = False
-                ir_top_pid.ignore = False
-                imu_wall_pid.ignore = True
-
-                robot["state"] = 'wall_follow'
-                print "Exited Doorway with standard method"
+            robot["state"] = 'wall_follow'
+            print "Exited Doorway with standard method"
 
     elif robot["state"] == 'corner':
         print "CORNERING"
@@ -376,12 +369,12 @@ if __name__ == '__main__':
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
     TOP_CORNER_ERROR_THRESHOLD = rospy.get_param('~top_corner_error_threshold')
-    TOP_C_MIN = 150
+    TOP_C_MIN = 100
     TOP_C_MAX = 500
-    BOTTOM_C_MIN = 1000
+    BOTTOM_C_MIN = 700
     TOP_D_MIN = 500
     BOTTOM_D_MIN = 90
-    BOTTOM_D_MAX = 1100
+    BOTTOM_D_MAX = 700
 
 
 
