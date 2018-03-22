@@ -39,7 +39,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > 750:
+        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -59,10 +59,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
         # either top or bottom IR has detected doorway
-        elif (ir_bottom_diff > DOOR_THRESHOLD and ir_bottom_diff < CORNER_THRESHOLD \
-        and ir_bottom_error > DOOR_ERROR_THRESHOLD and ir_bottom_error < CORNER_ERROR_THRESHOLD) or \
-           (ir_top_diff > DOOR_THRESHOLD and ir_top_diff < CORNER_THRESHOLD \
-           and ir_top_error > DOOR_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD):
+    elif ir_top_error > TOP_D_MIN or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX):
 
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
@@ -84,13 +81,13 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
         else:
             #protect against entering or exiting a corner
-            if ir_bottom_error < CORNER_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD:
+            if ir_bottom_error < BOTTOM_C_MIN and ir_top_error < TOP_C_MIN:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
-            elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
+            elif ir_bottom_error > BOTTOM_C_MIN:
                 ir_bottom_pid.ignore = True
                 print "ignoring bottom IR while wall following"
-            elif ir_top_error > CORNER_ERROR_THRESHOLD:
+            elif ir_top_error > TOP_C_MIN:
                 ir_top_pid.ignore = True
                 print "ignoring top IR while wall following"
 
@@ -106,7 +103,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #ir_top_pid.ignore = True
             #robot["state"] = 'wall_follow'
             #print "exit becasue top corner threshold"
-        if ir_bottom_average_error > CORNER_ERROR_THRESHOLD and ir_top_error > 50:
+        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX:
             ir_bottom_pid.ignore = True
             robot["state"] = 'corner'
             imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
@@ -115,14 +112,14 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             print "exit to corner because bottom corner threshold"
         else:
-            if ir_bottom_error > DOOR_THRESHOLD:
+            if ir_bottom_error > BOTTOM_D_MIN:
                 ir_bottom_pid.ignore = True
                 print "test1"
-            if ir_top_error > DOOR_THRESHOLD:
+            if ir_top_error > TOP_D_MIN:
                 ir_top_pid.ignore = True
                 print "test2"
 
-            if ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD:
+            if ir_bottom_error < 100 and ir_top_error < 100:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True
@@ -149,8 +146,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # both IR errors are less than corner state
 
-            if ir_top_error < DOOR_THRESHOLD and ir_bottom_error < DOOR_THRESHOLD \
-            and ir_bottom_diff < DOOR_THRESHOLD:
+            if ir_top_error < 100 and ir_bottom_error < 100 \
+            
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
@@ -159,7 +156,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
                 robot["state"] = 'wall_follow'
 
-            elif ir_top_error < CORNER_ERROR_THRESHOLD:
+            elif ir_top_error < TOP_C_MIN:
                 # turn top IR PID control back on
                 ir_bottom_pid.ignore = True
                 ir_top_pid.ignore = False
@@ -378,6 +375,13 @@ if __name__ == '__main__':
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
     TOP_CORNER_ERROR_THRESHOLD = rospy.get_param('~top_corner_error_threshold')
+    TOP_C_MIN = 150
+    TOP_C_MAX = 500
+    BOTTOM_C_MIN = 1000
+    TOP_D_MIN = 500
+    BOTTOM_D_MIN = 200
+    BOTTOM_D_MAX = 1000
+
 
 
     # redefine DOOR and CORNER thresholds
