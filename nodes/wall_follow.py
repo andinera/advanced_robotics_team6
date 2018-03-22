@@ -213,17 +213,16 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             if ir_top_diff > 50 and not ir_top_pid.ignore:
                 print "DISABLING TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = True
-            else:
+            elif ir_top_pid.ignore:
                 print "RE-ENABLE TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = False
 
             if ir_bottom_diff > 50 and not ir_bottom_pid.ignore:
                 print "DISABLING BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = True
-            else:
+            elif ir_bottom_pid.ignore:
                 print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
-            # do nothing: continue wall-following
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
@@ -879,7 +878,7 @@ def odroid():
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
             steering_cmd = stateMachine_ccs(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-            # steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            #steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
