@@ -287,11 +287,9 @@ def kodiesStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pi
 
     return steering_cmd
 
-
-def stateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
     if len(imu_corner_pid.reported_states) < 2:
-	print "ERROR: reported state length < 2"
         return 0
 
     # Q: How to differentiate between a window and a corner?
@@ -314,60 +312,38 @@ def stateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     # finite differencing on state to estimate derivative (divide by timestep?)
     ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])    # [cm]
     ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])             # [cm]
-    imu_wall_diff = math.fabs(imu_wall_pid.state.data
-                              - imu_corner_pid.reported_states[-2])     # [rad]
+    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])     # [rad]
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2]) # [rad]
 
-    #rospy.loginfo("Bottom IR Error:\t%f", ir_bottom_error)
-    #rospy.loginfo("Top IR Error:\t%f", ir_top_error)
-    #rospy.loginfo("IMU WALL Error:\t%f", imu_wall_error)
-    #rospy.loginfo("IMU CORNER Error:\t%f", imu_corner_error)
+    rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
+    rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
+    rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
+    rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
-        rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
-        rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-        rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        # window detectection
-        if (ir_bottom_error > DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) or \
-           (ir_bottom_error < DOOR_THRESHOLD and ir_top_error > DOOR_THRESHOLD):
-            print "WINDOW DETECTED"
-
-            # toggle IR sensor PID control based on current state error
-            if ir_top_error > DOOR_THRESHOLD:
-                ir_top_pid.ignore = True
-            else:
-                ir_top_pid.ignore = False
-
-            if ir_bottom_error > DOOR_THRESHOLD:
-                ir_bottom_pid.ignore = True
-            else:
-                ir_bottom_pid.ignore = False
-
-        # if bottom IR detects doorway
-        elif ir_bottom_error > DOOR_THRESHOLD and ir_bottom_error < CORNER_THRESHOLD:
+        # doorway detected
+        if ir_bottom_error > 700 and ir_top_error < 200:
             print "DOORWAY DETECTED"
+            robot["state"] = 'doorway'
 
-            # ignore PID control on both IR sensors
+            # ignore both IR sensores and switch to IMU PID
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
 
-            # use imu wall-following PID controller and reset IMU setpoints
+            # use imu wall-following PID controller and (maybe?) reset IMU setpoints
             imu_wall_pid.ignore = False
-            # imu_setpoint = imu_wall_pid.state.data
-            # imu_wall_pid.imu_setpoint(imu_setpoint)
-            # imu_corner_pid.imu_setpoint(imu_setpoint)
+            imu_setpoint = imu_wall_pid.state.data
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
 
-            robot["state"] = 'doorway'
-
-        # will corner only when both IR sensor errors exceed the corner threshold.
-        # The intention is to prevent a window from being misinterpreted as a corner...
-        # There may be a better way to make this distinction.
-        # elif ir_bottom_diff > CORNER_THRESHOLD or ir_top_diff > CORNER_THRESHOLD:
-        elif ir_bottom_error > CORNER_THRESHOLD:
+        # corner detected - these values can be decreased
+    elif ir_top_error > 10000 or ir_top_diff > 10000:
             print "CORNER DETECTED"
+            robot["state"] = 'corner'
+
+            # ignore both IR sensores and switch to IMU PID
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
             imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
@@ -380,46 +356,54 @@ def stateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             imu_setpoint = imu_wall_pid.state.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
-            robot["state"] = 'corner'
 
+        # continue wall-following
         else:
-            # do nothing: continue wall-following
-
-            # ignore top IR PID control effort when the state error is large
-    	    if ir_top_error > DOOR_THRESHOLD:
+            # ignore IR top or bottom steering commands for semi-large derivative spikes
+            if ir_top_diff > 50 and not ir_top_pid.ignore:
+                print "DISABLING TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = True
             else:
+                print "RE-ENABLE TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = False
 
-            if ir_bottom_error > DOOR_THRESHOLD:
+            if ir_bottom_diff > 50 and not ir_bottom_pid.ignore:
+                print "DISABLING BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = True
             else:
+                print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
+            # do nothing: continue wall-following
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
-        rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
-        rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
-        rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-        rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
-        # shouldn't be necessary, but I'll leave it for meow
-        if ir_bottom_error > DOOR_THRESHOLD:
-            ir_bottom_pid.ignore = True
-        if ir_top_error > DOOR_THRESHOLD:
-            ir_top_pid.ignore = True
+        # exit doorway andd switch back to wall-following
+        if ir_bottom_diff < 75 and ir_top_diff < 75:
+            print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
+            robot["state"] = 'wall_follow'
 
-        # only switch back to wall-following after both sensors have cleared the doorway. This will prevent
-        # the 'doorway' state from triggering again once the bottom IR sensor passes the doorway since
-        # switching to the 'doorway' state is currently based on the abs value of the error derivative
-        if (ir_bottom_error < DOOR_THRESHOLD and ir_top_error < DOOR_THRESHOLD) and \
-           (ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD):
-            print "EXITING DOORWAY"
             ir_bottom_pid.ignore = False
             ir_top_pid.ignore = False
             imu_wall_pid.ignore = True
 
-            robot["state"] = 'wall_follow'
+        # doorway mistaken for corner - needs further tuning (could decrease these values)
+        elif ir_top_diff > 10000 or ir_bottom_error > 10000:
+            print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
+            robot["state"] = 'corner'
+
+            ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
+
+            # enable imu_corner_pid
+            imu_corner_pid.ignore = False
+
+            # reset IMU setpoint for cornering task relative to current heading
+            # (this is to account for IMU heading drift)
+            imu_setpoint = imu_wall_pid.state.data - math.radians(90)
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+            imu_corner_pid.imu_setpoint(imu_setpoint)
 
     elif robot["state"] == 'corner':
         print "CORNERING"
@@ -432,19 +416,20 @@ def stateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
             # Need to think of another way to handle this...
 
             # both IR derivatives have stabilized (states not necessarily within DOOR_THRESHOLD)
-            if ir_bottom_diff < DOOR_THRESHOLD and ir_top_diff < DOOR_THRESHOLD:
+            if ir_bottom_diff < 100 and ir_top_diff < 100:  # will want to decrease these as much as possible
                 print "EXITING CORNER: IR STATE DERIVATIVES HAVE STABILIZED"
+                robot["state"] = 'wall_follow'
+
                 # turn IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
 
-                robot["state"] = 'wall_follow'
-
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
+            rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), \
+        math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
 
     else:
         print "FAULT: Entered default case in state machine."
@@ -467,7 +452,6 @@ def stateMachine2(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
     steering_cmd /= i
 
     return steering_cmd
-
 
 def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
@@ -633,7 +617,7 @@ def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
         else:
             # log imu_corner_pid state and setpoint error during turn
             rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), \
-		math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
+        math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
 
     else:
         print "FAULT: Entered default case in state machine."
