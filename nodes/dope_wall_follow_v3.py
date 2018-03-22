@@ -26,6 +26,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-9])
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
+    corner_count = 0
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
@@ -34,10 +35,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > 1000 and ir_bottom_diff > 1000 and imu_corner_pid < 3:
+        if ir_bottom_error > 1000 and ir_bottom_diff > 1000 and corner_count < 3:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
-            imu_corner_pid += 1
+            corner_count += 1
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
             imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
@@ -115,8 +116,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # both IR errors are less than corner state
 
-            if ir_top_error < CORNER_ERROR_THRESHOLD and ir_bottom_error < CORNER_ERROR_THRESHOLD \
-            and ir_bottom_diff < DOOR_THRESHOLD:
+            if ir_top_error < 100 and ir_bottom_error < 100:
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
@@ -125,7 +125,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
                 robot["state"] = 'wall_follow'
 
-            elif ir_top_error < CORNER_ERROR_THRESHOLD:
+            elif ir_top_error < 100 :
                 # turn top IR PID control back on
                 ir_bottom_pid.ignore = True
                 ir_top_pid.ignore = False
