@@ -145,21 +145,11 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
     return steering_cmd
 
+# written based on the ir_course_data_<obstacle>_1 dataset
 def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
     if len(imu_corner_pid.reported_states) < 2:
         return 0
-
-    # Q: How to differentiate between a window and a corner?
-    # I believe that in both cases ir_top_diff and ir_top_error will spike
-    # beyond the corner threshold. In the case of the window: top_ir will return
-    # to a low error value soon after crossing the window, while in the case of
-    # a corner, top_ir error will not return a low error value. Additionally, in
-    # the case of the window, bottom_ir will
-
-    # My belief is that for the window case, both ir_top_error and ir_bottom_error
-    # will not exceed the corner threshold at the same time, whereas, with the
-    # corner, both the bottom and top_ir errors will exceed the corner threshold
 
     # define setpoint error values for state switching logic
     ir_bottom_error = math.fabs(ir_bottom_pid.setpoint.data - ir_bottom_pid.state.data)     # [cm]
@@ -185,8 +175,8 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
 
-        # doorway detected
-        if ir_bottom_error > 700 and ir_top_error < 200:
+        # doorway detected (window/door combos will be mistaken for doorways)
+        if ir_top_error > 500 or ir_top_diff > 500:
             print "DOORWAY DETECTED"
             robot["state"] = 'doorway'
 
@@ -200,8 +190,8 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
-        # corner detected - these values can be decreased
-        elif ir_top_error > 10000 or ir_top_diff > 10000:
+        # corner detected - don't think this will aver happen
+    elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
 
@@ -221,18 +211,18 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
         # continue wall-following
         else:
-            # ignore IR top or bottom steering commands for semi-large derivative spikes
+            # momentarily ignore IR top or bottom steering commands for semi-large derivative spikes
             if ir_top_diff > 50 and not ir_top_pid.ignore:
                 print "DISABLING TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = True
-            elif ir_top_pid.ignore:
+            elif ir_top_diff < 50 and ir_top_pid.ignore:
                 print "RE-ENABLE TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = False
 
             if ir_bottom_diff > 50 and not ir_bottom_pid.ignore:
                 print "DISABLING BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = True
-            elif ir_bottom_pid.ignore:
+            elif ir_bottom_diff < 50 and ir_bottom_pid.ignore:
                 print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
 
@@ -240,7 +230,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         print "DOORWAY"
 
         # exit doorway andd switch back to wall-following
-        if ir_bottom_diff < 75 and ir_top_diff < 75:
+        if ir_bottom_error < 60 and ir_bottom_diff < 60:
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             robot["state"] = 'wall_follow'
 
@@ -249,7 +239,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.ignore = True
 
         # doorway mistaken for corner - needs further tuning (could decrease these values)
-        elif ir_top_diff > 10000 or ir_bottom_error > 10000:
+    elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
             robot["state"] = 'corner'
 
@@ -265,6 +255,11 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_setpoint = imu_wall_pid.state.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
+
+        else:
+            # re-enable top IR PID once it has cleared doorway
+            if ir_top_error < 60:
+                ir_top_pid.ignore = False
 
     elif robot["state"] == 'corner':
         print "CORNERING"
@@ -310,7 +305,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
-  #  steering_cmd /= i
+    steering_cmd /= i
 
     return steering_cmd
 
