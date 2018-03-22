@@ -147,7 +147,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             # both IR errors are less than corner state
 
             if ir_top_error < 100 and ir_bottom_error < 100 \
-            
+
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
