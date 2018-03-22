@@ -191,7 +191,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
         # corner detected - don't think this will aver happen
-    elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
+        elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
 
@@ -239,7 +239,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.ignore = True
 
         # doorway mistaken for corner - needs further tuning (could decrease these values)
-    elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
+        elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
             robot["state"] = 'corner'
 
@@ -772,7 +772,7 @@ def madgwick_callback(data, args):
     odometry.pose.pose.orientation.y = y
     odometry.pose.pose.orientation.z = z
     odometry.pose.pose.orientation.w = w
-    sensor_odometry_pub.publish(odometry)
+    #sensor_odometry_pub.publish(odometry)
 
 
 # Callbacks for recording data from top IR sensor
@@ -838,7 +838,7 @@ def odroid():
         madgwick_sub = rospy.Subscriber("imu/data_madgwick",
                                         Imu,
                                         madgwick_callback,
-                                        [imu_wall_pid,imu_corner_pid, sensor_odometry_pub])
+                                        [imu_wall_pid, imu_corner_pid, sensor_odometry_pub])
 
         # Send setpoints to PIDs
         # Wait for recorded sensor data before publishing setpoint
@@ -875,7 +875,7 @@ def odroid():
         elapsed_time = rospy.Time.now() - start_time
 
         count = 0
-        while not rospy.is_shutdown() and elapsed_time < rospy.Duration(3):
+        while not rospy.is_shutdown():
             elapsed_time = rospy.Time.now() - start_time
 
             # Publish sensor states
@@ -894,8 +894,8 @@ def odroid():
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
-            #steering_cmd += STEERING_CENTER
-            steering_cmd = STEERING_CENTER
+            steering_cmd += STEERING_CENTER
+            #steering_cmd = STEERING_CENTER
             #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
