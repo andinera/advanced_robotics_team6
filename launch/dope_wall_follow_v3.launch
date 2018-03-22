@@ -1,0 +1,50 @@
+<launch>
+
+    <!-- Initialize IMU driver -->
+    <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
+    <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
+        args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
+        output="screen">
+        <param name="period" value="8"/>
+    </node>
+
+    <!-- Initialize IR node -->
+    <node pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen"/>
+
+    <!-- Dummy node for sending IMU data -->
+    <!-- <node pkg="advanced_robotics_team6" type="dummy_imu.py" name="dummy_imu_node" /> -->
+
+    <!-- Dummy node for sending IR data -->
+    <!-- <node pkg="advanced_robotics_team6" type="dummy_ir.py" name="dummy_ir_node" /> -->
+
+    <!-- Initialize madgwick filter -->
+    <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
+      <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
+      <remap from="imu/data" to="imu/data_madgwick"/>
+    </node>
+
+    <!-- Initialize wall IMU PID -->
+    <node name="imu_wall_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_wall_pid.yaml"/>
+     </node>
+
+    <!-- Initialize cornering IMU PID -->
+    <node name="imu_corner_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_corner_pid.yaml"/>
+    </node>
+
+    <!-- Initialize bottom IR PID -->
+    <node name="ir_bottom_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/dope_params.yaml"/>
+     </node>
+
+     <!-- Initialize top IR PID -->
+    <node name="ir_top_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam command="load" file="$(find advanced_robotics_team6)/params/dope_params.yaml"/>
+     </node>
+
+     <node pkg="advanced_robotics_team6" type="dope_wall_follow_v3.py" name="odroid_node2" output="screen">
+         <rosparam command="load" file="$(find advanced_robotics_team6)/params/wall_follow.yaml" />
+    </node>
+
+</launch>

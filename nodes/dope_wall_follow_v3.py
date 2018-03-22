@@ -34,10 +34,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_top_error > 14000 or ir_bottom_error > 14000:
+        if ir_bottom_error > 1000 and ir_bottom_diff > 1000 and imu_corner_pid < 3:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
-
+            imu_corner_pid += 1
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
             imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
@@ -50,43 +50,90 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
+        # either top or bottom IR has detected doorway
+        elif ir_top_error > 500 and ir_top_error < 5000 and \
+                    ir_top_diff > 500 and ir_top_diff < 5000:
+            print "DOORWAY DETECTED"
+            robot["state"] = 'wall_follow'
+
+            # reset IMU setpoint for cornering task
+            imu_setpoint = imu_wall_pid.state.data
+            imu_wall_pid.imu_setpoint(imu_setpoint)
+
+            ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            # use imu wall-following PID controller
+            imu_wall_pid.ignore = False
+
         else:
             #protect against entering or exiting a corner
-            if ir_bottom_error < 14000 and ir_top_error < 14000:
+            if ir_bottom_error < CORNER_ERROR_THRESHOLD and ir_top_error < CORNER_ERROR_THRESHOLD:
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
-                print "wall_follow_1"
-
-            elif ir_bottom_error > 14000:
+            elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
                 ir_bottom_pid.ignore = True
-                imu_corner_pid.ignore = False
-                ir_top_pid.ignore = False
-                print "cornering_1"
-                robot["state"] == 'corner'
-
-            elif ir_top_error > 14000:
+            elif ir_top_error > CORNER_ERROR_THRESHOLD:
                 ir_top_pid.ignore = True
-                ir_bottom_pid.ignore = False
-                imu_corner_pid.ignore = False
-                print "cornering_2"
-                robot["state"] == 'corner'
+
+
+    # elif robot["state"] == 'doorway':
+    #     print "DOORWAY"
+    #     rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
+    #     rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
+    #     rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
+    #     rospy.loginfo("ir_top_error:\t%f", ir_top_error)
+    #
+    #     if ir_top_pid.state.data > CORNER_ERROR_THRESHOLD:
+    #         ir_top_pid.ignore = True
+    #         robot["state"] = 'wall_follow'
+    #         print "exit becasue top corner threshold"
+    #     elif ir_bottom_error > CORNER_ERROR_THRESHOLD:
+    #         ir_bottom_pid.ignore = True
+    #         robot["state"] = 'wall_follow'
+    #         print "exit because bottom corner threshold"
+    #     else:
+    #         if ir_bottom_error > DOOR_THRESHOLD:
+    #             ir_bottom_pid.ignore = True
+    #             print "test1"
+    #         if ir_top_error > DOOR_THRESHOLD:
+    #             ir_top_pid.ignore = True
+    #             print "test2"
+    #
+    #         if ir_bottom_error < 0.7*DOOR_THRESHOLD and ir_top_error < 0.7*DOOR_THRESHOLD:
+    #             ir_bottom_pid.ignore = False
+    #             ir_top_pid.ignore = False
+    #             imu_wall_pid.ignore = True
+    #
+    #             robot["state"] = 'wall_follow'
+    #             print "Exited Doorway with standard method"
 
     elif robot["state"] == 'corner':
         print "CORNERING"
+        rospy.loginfo("CORNERING:\t{}\t{}".format(imu_corner_pid))
         if imu_corner_error < math.pi/4.5:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
             # both IR errors are less than corner state
-            if ir_top_error < 14000 and ir_bottom_error < 14000:
+
+            if ir_top_error < CORNER_ERROR_THRESHOLD and ir_bottom_error < CORNER_ERROR_THRESHOLD \
+            and ir_bottom_diff < DOOR_THRESHOLD:
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True
                 imu_corner_pid.ignore = True
+
                 robot["state"] = 'wall_follow'
 
-                print "wall_follow_2"
+            elif ir_top_error < CORNER_ERROR_THRESHOLD:
+                # turn top IR PID control back on
+                ir_bottom_pid.ignore = True
+                ir_top_pid.ignore = False
+                imu_wall_pid.ignore = True     # may not want to use imu_pid to do wall-following
+                imu_corner_pid.ignore = True
 
+                robot["state"] = 'corner'
+                print "Using top ir sensor for wall follow"
         else:
             # log imu_corner_pid state and setpoint error during turn
             rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), math.degrees(imu_corner_error)))
