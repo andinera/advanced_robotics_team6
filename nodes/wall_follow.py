@@ -925,7 +925,7 @@ def madgwick_callback(data, args):
     if len(imu_corner_pid.recorded_states) >= NUM_READINGS:
         del imu_corner_pid.recorded_states[0]
     imu_corner_pid.recorded_states.append(angles[2])
-    
+
     odometry = Odometry()
     odometry.header = data.header
     odometry.pose.pose.orientation.x = x
@@ -1009,8 +1009,8 @@ def odroid():
         ir_top_pid.ir_setpoint()
 
         # Set zero intial velocity and steering
-        motor_srv(CENTER)
-        steering_srv(CENTER)
+        motor_srv(MOTOR_CENTER)
+        steering_srv(STEERING_CENTER)
         rospy.sleep(1)
 
         # Set forward speed
@@ -1048,7 +1048,7 @@ def odroid():
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
-            steering_cmd += CENTER
+            steering_cmd += STEERING_CENTER
             #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
@@ -1078,7 +1078,7 @@ if __name__ == '__main__':
     DUMMY_MODE = rospy.get_param('~dummy_mode')
     MIN = rospy.get_param('~min')
     MAX = rospy.get_param('~max')
-    CENTER = rospy.get_param('~center')
+    #CENTER = rospy.get_param('~center')
     MOTOR_SPEED = rospy.get_param('~motor_speed')
     RATE = rospy.get_param('~rate')
     NUM_READINGS = rospy.get_param('~num_readings')
@@ -1090,6 +1090,9 @@ if __name__ == '__main__':
     CORNER_ERROR_THRESHOLD = rospy.get_param('~corner_error_threshold')
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
+
+    MOTOR_CENTER = rospy.get_param('~motor_center')
+    STEERING_CENTER = rospy.get_param('~steering_center')
 
     # redefine DOOR and CORNER thresholds
     DOOR_THRESHOLD = 150
