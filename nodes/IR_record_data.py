@@ -13,12 +13,12 @@ from advanced_robotics_team6.srv import PololuCmd
 
 write_data = True
 CENTER = 6000
-MOTOR_SPEED = 6250
+MOTOR_SPEED = 6300
 
 rospy.init_node('ir_test')
 
 if write_data:
-    csv_out = open("test.csv", 'a')
+    csv_out = open("ir_course_data_doorwindow.csv", 'a')
     # csv_out = open("ir_course_data_doorway1.csv", 'a')
     writer = csv.writer(csv_out)
 
@@ -44,7 +44,8 @@ with pololu.Controller(0) as steering,  \
     print "Bottom Setpoint: {} cm".format(setpoint_bottom)
 
     # Set zero intial velocity and steering
-    steering.set_target(CENTER)
+    #steering.set_target(CENTER)
+    steering.set_target(CENTER-200)
     motor.set_target(CENTER)
     rospy.sleep(1)
 
@@ -56,8 +57,9 @@ with pololu.Controller(0) as steering,  \
     elapsed_time = rospy.Time.now() - start_time
 
     count = 1
-    while not rospy.is_shutdown() and elapsed_time < rospy.Duration(2):
+    while not rospy.is_shutdown() and elapsed_time < rospy.Duration(3.5):
         elapsed_time = rospy.Time.now() - start_time
+        steering.set_target(CENTER-200)
 
         if count == 1:
             data_top_prev = setpoint_top
