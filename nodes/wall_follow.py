@@ -15,7 +15,7 @@ from drivers import pid_driver
 WRITE_DATA = True
 if WRITE_DATA:
     print "OPENING CSV"
-    csv_out = open("/home/carl/cu_adv_robot/src/advanced_robotics_team6/data/ir_course_data_test.csv", 'a')
+    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_blockedwindow_1.csv", 'a')
     # csv_out = open("ir_course_data_doorway1.csv", 'a')
     writer = csv.writer(csv_out)
 
@@ -310,7 +310,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
-    steering_cmd /= i
+  #  steering_cmd /= i
 
     return steering_cmd
 
@@ -880,7 +880,7 @@ def odroid():
         elapsed_time = rospy.Time.now() - start_time
 
         count = 0
-        while not rospy.is_shutdown() and elapsed_time < rospy.Duration(3.5):
+        while not rospy.is_shutdown() and elapsed_time < rospy.Duration(3):
             elapsed_time = rospy.Time.now() - start_time
 
             # Publish sensor states
@@ -899,7 +899,8 @@ def odroid():
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
-            steering_cmd += STEERING_CENTER
+            #steering_cmd += STEERING_CENTER
+            steering_cmd = STEERING_CENTER
             #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
@@ -918,6 +919,9 @@ def odroid():
 
             # Iterate at frequency of rate
             rate.sleep()
+
+        # stop car
+        motor_srv(MOTOR_CENTER)
 
         if WRITE_DATA:
             print "CLOSING CSV"
