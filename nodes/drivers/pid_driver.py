@@ -21,6 +21,8 @@ class Driver:
         self.turning = False            # Entering a corner
         self.reported_states = []       # Last states sent to the PID
         self.recorded_states = []       # Last states measured by IMU
+        self.turns_completed = 0
+        self.last_turn_time = None
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
@@ -67,14 +69,17 @@ class Driver:
         self.control_effort = int(data.data)
 
     # Initialize IR setpoint
-    def ir_setpoint(self):
-        states = self.recorded_states[:]
-        std_dev = numpy.std(states)
-        mean = numpy.mean(states)
-        for state in states[:]:
-            if state < mean-std_dev or state > mean+std_dev:
-                states.remove(state)
-        self.setpoint.data = numpy.mean(states)
+    def ir_setpoint(self, setpoint=None):
+        if setpoint:
+            self.setpoint.data = setpoint
+        else:
+            states = self.recorded_states[:]
+            std_dev = numpy.std(states)
+            mean = numpy.mean(states)
+            for state in states[:]:
+                if state < mean-std_dev or state > mean+std_dev:
+                    states.remove(state)
+            self.setpoint.data = numpy.mean(states)
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]

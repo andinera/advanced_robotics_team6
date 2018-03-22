@@ -191,7 +191,8 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
         # corner detected - don't think this will aver happen
-        elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
+        # want to decrease value of ir_top_error as much as possible
+        elif (ir_bottom_error > 1500 or ir_bottom_diff > 1500) and ir_top_error > 100:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
 
@@ -212,25 +213,32 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         # continue wall-following
         else:
             # momentarily ignore IR top or bottom steering commands for semi-large derivative spikes
-            if ir_top_diff > 50 and not ir_top_pid.ignore:
+            if ir_top_diff > 60 and not ir_top_pid.ignore:
                 print "DISABLING TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = True
-            elif ir_top_diff < 50 and ir_top_pid.ignore:
+            elif ir_top_diff < 60 and ir_top_pid.ignore:
                 print "RE-ENABLE TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = False
 
-            if ir_bottom_diff > 50 and not ir_bottom_pid.ignore:
+            if ir_bottom_diff > 60 and not ir_bottom_pid.ignore:
                 print "DISABLING BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = True
-            elif ir_bottom_diff < 50 and ir_bottom_pid.ignore:
+            elif ir_bottom_diff < 60 and ir_bottom_pid.ignore:
                 print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
+
+            # check to make sure that at leeast one IR sensor PID control is on
+            if ir_top_pid.ignore and ir_bottom_pid.ignore:
+                if ir_top_diff < ir_bottom_diff:
+                    ir_top_pid.ignore = False
+                else:
+                    ir_bottom_pid.ignore = False
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
 
         # exit doorway andd switch back to wall-following
-        if ir_bottom_error < 60 and ir_bottom_diff < 60:
+        if ir_bottom_error < 60 and ir_bottom_diff < 60 and ir_top_error < 100:
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             robot["state"] = 'wall_follow'
 
@@ -239,7 +247,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.ignore = True
 
         # doorway mistaken for corner - needs further tuning (could decrease these values)
-        elif ir_bottom_error > 1000 or ir_bottom_diff > 1000:
+        elif ir_bottom_error > 1500 or ir_bottom_diff > 1000:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
             robot["state"] = 'corner'
 
@@ -284,8 +292,8 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
         else:
             # log imu_corner_pid state and setpoint error during turn
-            rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.state.data), \
-        math.degrees(imu_corner_error), math.degrees(imu_corner_pid.setpoint.data)))
+            rospy.loginfo("CORNERING:\t{}\t{}\t{}".format(math.degrees(imu_corner_pid.setpoint.data), \
+            math.degrees(imu_corner_pid.state.data),math.degrees(imu_corner_error)))
 
     else:
         print "FAULT: Entered default case in state machine."
@@ -305,8 +313,10 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
+        rospy.loginfo("Crnr Steering Cmd:\t{}".format(steering_cmd))
     steering_cmd /= i
 
+    rospy.loginfo("Steering Cmd:\t{}".format(steering_cmd)) 
     return steering_cmd
 
 def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
@@ -845,8 +855,11 @@ def odroid():
         rospy.sleep(0.25)
         imu_corner_pid.imu_setpoint()
         imu_wall_pid.imu_setpoint(imu_corner_pid.setpoint.data)
-        ir_bottom_pid.ir_setpoint()
-        ir_top_pid.ir_setpoint()
+        ir_bottom_pid.ir_setpoint(170)
+        ir_top_pid.ir_setpoint(140)
+
+        print ir_bottom_pid.setpoint.data
+        print ir_top_pid.setpoint.data
 
         # Set zero intial velocity and steering
         motor_srv(MOTOR_CENTER)
