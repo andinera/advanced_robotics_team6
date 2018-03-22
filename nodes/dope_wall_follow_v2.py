@@ -59,7 +59,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
         # either top or bottom IR has detected doorway
-    elif ir_top_error > TOP_D_MIN or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX):
+        elif ir_top_error > TOP_D_MIN or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX):
 
             print "DOORWAY DETECTED"
             # reset IMU setpoint for cornering task
@@ -146,7 +146,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # both IR errors are less than corner state
 
-            if ir_top_error < 100 and ir_bottom_error < 100 \
+            if ir_top_error < 100 and ir_bottom_error < 100:
+            
 
                 # turn top and bottom IR PID control back on
                 ir_bottom_pid.ignore = False

@@ -1,15 +1,23 @@
 #!/usr/bin/env python
 
 import rospy
+import math
+import csv
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 from nav_msgs.msg import Odometry
 from advanced_robotics_team6.srv import PololuCmd
 from tf.transformations import euler_from_quaternion
-import math
 from drivers import pid_driver
 
+# used for recording data
+WRITE_DATA = True
+if WRITE_DATA:
+    print "OPENING CSV"
+    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_blockedwindow_1.csv", 'a')
+    # csv_out = open("ir_course_data_doorway1.csv", 'a')
+    writer = csv.writer(csv_out)
 
 def test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid):
     if ir_bottom_pid.recorded_states[-1] < CORNER_THRESHOLD and ir_top_pid.recorded_states[-1] < CORNER_THRESHOLD \
@@ -38,10 +46,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_corner_error = math.fabs(imu_corner_pid.setpoint.data - imu_corner_pid.state.data)
 
     # finite differencing on state to estimate derivative (divide by timestep?)
-    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-9])
-    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-9])
-    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-9])
-    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-9])
+    ir_bottom_diff = math.fabs(ir_bottom_pid.state.data - ir_bottom_pid.reported_states[-2])
+    ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])
+    imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])
+    imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2])
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
@@ -164,6 +172,10 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     ir_top_diff = math.fabs(ir_top_pid.state.data - ir_top_pid.reported_states[-2])             # [cm]
     imu_wall_diff = math.fabs(imu_wall_pid.state.data - imu_corner_pid.reported_states[-2])     # [rad]
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2]) # [rad]
+
+    if WRITE_DATA:
+        print "WRITING DATA"
+        writer.writerow([ir_bottom_error, ir_top_error, ir_bottom_diff, ir_top_diff])
 
     rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
     rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
@@ -298,7 +310,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     if not imu_corner_pid.ignore:
         i += 1
         steering_cmd += imu_corner_pid.control_effort
-    steering_cmd /= i
+  #  steering_cmd /= i
 
     return steering_cmd
 
@@ -863,8 +875,13 @@ def odroid():
 
         # Count iterations
         # Can be used for debugging or other miscellaneous needs
+
+        start_time = rospy.Time.now()
+        elapsed_time = rospy.Time.now() - start_time
+
         count = 0
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and elapsed_time < rospy.Duration(3):
+            elapsed_time = rospy.Time.now() - start_time
 
             # Publish sensor states
             ir_bottom_pid.ir_publish_state()
@@ -882,7 +899,8 @@ def odroid():
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
-            steering_cmd += STEERING_CENTER
+            #steering_cmd += STEERING_CENTER
+            steering_cmd = STEERING_CENTER
             #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
@@ -901,6 +919,13 @@ def odroid():
 
             # Iterate at frequency of rate
             rate.sleep()
+
+        # stop car
+        motor_srv(MOTOR_CENTER)
+
+        if WRITE_DATA:
+            print "CLOSING CSV"
+            csv_out.close()
 
 
 if __name__ == '__main__':
