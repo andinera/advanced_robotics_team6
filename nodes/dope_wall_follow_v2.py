@@ -9,7 +9,11 @@ from tf.transformations import euler_from_quaternion
 import math
 from drivers import pid_driver
 
-
+WRITE_DATA = True
+if WRITEDATA:
+    print "OPENING CSV"
+    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data.csv", "a")
+    writer = csv.writer(csv_out)
 
 def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
@@ -31,6 +35,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     imu_corner_diff = math.fabs(imu_corner_pid.state.data - imu_corner_pid.reported_states[-2])
 
     ir_bottom_average_error = math.fabs(ir_bottom_pid.setpoint.data - (ir_bottom_pid.reported_states[-1] + ir_bottom_pid.reported_states[-2] + ir_bottom_pid.reported_states[-3])/3)
+
+    if WRITE_DATA:
+        print "WRITING DATA"
+        writer.writerow([ir_bottom_error, ir_top_error, ir_bottom_diff, ir_top_diff])
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
