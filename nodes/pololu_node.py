@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
-from drivers import pololu
+# from drivers import pololu
+from drivers import dummy_pololu as pololu
 from std_msgs.msg import Float64
 from advanced_robotics_team6.srv import PololuCmd, PololuCmdResponse
 
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     ir_top_pub = rospy.Publisher('pololu/top_IR/data', Float64, queue_size=1)
     rate = rospy.Rate(500)
     ir_state = Float64()
+
     motor_srv = rospy.Service('motor_cmd', PololuCmd, motor_handler)
     steering_srv = rospy.Service('steering_cmd',PololuCmd, steering_handler)
 
@@ -45,5 +47,5 @@ if __name__ == '__main__':
             if steering_cmd != 0:
                 steering.set_target(steering_cmd)
                 steering_cmd = 0
-    
+
             rate.sleep()

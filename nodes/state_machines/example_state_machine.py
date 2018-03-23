@@ -22,8 +22,8 @@ class Foo(smach.State):
             userdata.foo_counter_out = temp_counter
             userdata.foo_list_in.append(temp_counter)
             userdata.foo_list_out = userdata.foo_list_in
-            rospy.loginfo('FOO: {}'.format(CONSTANT))
             global CONSTANT
+            rospy.loginfo('FOO: {}'.format(CONSTANT))
             CONSTANT = 'goodbye'
             return 'outcome1'
         else:

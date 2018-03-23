@@ -1,21 +1,18 @@
 <launch>
 
     <!-- Initialize IMU driver -->
-    <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
+    <!-- <node pkg="nodelet" type="nodelet" name="imu_manager" args="manager" output="screen" />
     <node pkg="nodelet" type="nodelet" name="PhidgetsImuNodelet"
         args="load phidgets_imu/PhidgetsImuNodelet imu_manager"
         output="screen">
         <param name="period" value="8"/>
-    </node>
+    </node> -->
 
     <!-- Initialize IR node -->
     <node pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen"/>
 
     <!-- Dummy node for sending IMU data -->
-    <!-- <node pkg="advanced_robotics_team6" type="dummy_imu.py" name="dummy_imu_node" /> -->
-
-    <!-- Dummy node for sending IR data -->
-    <!-- <node pkg="advanced_robotics_team6" type="dummy_ir.py" name="dummy_ir_node" /> -->
+    <node pkg="advanced_robotics_team6" type="dummy_imu.py" name="dummy_imu_node" output="screen"/>
 
     <!-- Initialize madgwick filter -->
     <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">

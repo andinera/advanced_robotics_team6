@@ -316,7 +316,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("Crnr Steering Cmd:\t{}".format(steering_cmd))
     steering_cmd /= i
 
-    rospy.loginfo("Steering Cmd:\t{}".format(steering_cmd)) 
+    rospy.loginfo("Steering Cmd:\t{}".format(steering_cmd))
     return steering_cmd
 
 def stateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
@@ -849,6 +849,8 @@ def odroid():
                                         Imu,
                                         madgwick_callback,
                                         [imu_wall_pid, imu_corner_pid, sensor_odometry_pub])
+
+        print 'test1'
 
         # Send setpoints to PIDs
         # Wait for recorded sensor data before publishing setpoint

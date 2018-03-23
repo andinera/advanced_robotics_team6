@@ -119,19 +119,8 @@ class Controller:
         # Controller.usb.write(chr(0x90)+chr(self.channel))
         # least = ord(Controller.usb.read())
         # most = ord(Controller.usb.read())
-        least = randint(1,2)
-        most = randint(0,254)
-        least = "{0:08b}".format(least)
-        most = "{0:08b}".format(most)
-        pos = "{}{}".format(most, least)
-        pos = int(pos, base=2)
 
-	if pos != 0:
-            pos = 1/float(pos)
-            pos = 3212000000*pos**3 - 17229000*pos**2 + 129560*pos - 117.11
-        else:
-            pos = 0
-        return pos
+        return randint(120, 240)
 
     # Example call
     # Controller.get_moving_state()

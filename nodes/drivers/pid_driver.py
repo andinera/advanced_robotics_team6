@@ -23,6 +23,7 @@ class Driver:
         self.recorded_states = []       # Last states measured by IMU
         self.turns_completed = 0
         self.last_turn_time = None
+        self.sync = 0
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
