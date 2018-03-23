@@ -56,10 +56,8 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
             # enable imu_corner_pid
             imu_corner_pid.ignore = False
-
-            # reset IMU setpoint for cornering task
-
             imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
+            print "set imu setpoint to 90"
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
@@ -114,9 +112,10 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             ir_bottom_pid.ignore = True
             robot["state"] = 'corner'
             imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
+            print "set imu setpoint to 90"
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
-    	    robot["state"] = 'wall_follow'
+    	    robot["state"] = 'corner'
             print "exit to wall_follow because bottom corner threshold"
 
         elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
@@ -297,7 +296,7 @@ def odroid():
         #rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(6250)
+        motor_srv(6300)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
@@ -314,7 +313,10 @@ def odroid():
         # Count iterations: can be used for debugging or other miscellaneous needs
         count = 0
         while not rospy.is_shutdown():
-
+            if robot["state"] == 'wall_follow':
+                motor_srv(6300)
+            else:
+                motor_srv(6200)
             #for _ in range(NUM_READINGS):
             #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
             #    ir_top_callback(ir_top.get_position(), ir_top_pid)
@@ -377,7 +379,7 @@ if __name__ == '__main__':
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
     TOP_CORNER_ERROR_THRESHOLD = rospy.get_param('~top_corner_error_threshold')
-    TOP_C_MIN = 100
+    TOP_C_MIN = 75
     TOP_C_MAX = 500
     BOTTOM_C_MIN = 700
     TOP_D_MIN = 500

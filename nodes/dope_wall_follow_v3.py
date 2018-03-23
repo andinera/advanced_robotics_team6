@@ -10,7 +10,7 @@ import math
 from drivers import pid_driver
 
 
-def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid,motor_srv):
 
     if len(imu_corner_pid.reported_states) < 9:
         return 0
@@ -270,7 +270,7 @@ def odroid():
             # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
-            steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid,motor_srv)
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target

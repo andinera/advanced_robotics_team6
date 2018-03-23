@@ -215,7 +215,7 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
             motor_srv(MOTOR_SPEED - 50)
 
         # continue wall-following
-        else:
+        elif False:
             # momentarily ignore IR top or bottom steering commands for semi-large derivative spikes
             if ir_top_diff > 75 and not ir_top_pid.ignore:
                 print "DISABLING TOP IR IN DEFAULT CASE"
@@ -242,6 +242,9 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
                 #    ir_top_pid.ignore = False
                 #else:
                 #    ir_bottom_pid.ignore = False
+        
+        else:
+            pass
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
@@ -256,7 +259,7 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
             imu_wall_pid.ignore = True
 
         # doorway mistaken for corner - needs further tuning (could decrease these values)
-        elif ir_bottom_error > 1500 or ir_bottom_diff > 1000:
+        elif (ir_bottom_error > 1500 or ir_bottom_diff > 1000) and ir_top_error > 500:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
             robot["state"] = 'corner'
 
