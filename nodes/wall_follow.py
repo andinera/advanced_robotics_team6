@@ -238,11 +238,7 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
             elif not imu_wall_pid.ignore:
                 print "DISABLING IMU WALL PID"
                 imu_wall_pid.ignore = True
-                #if ir_top_diff < ir_bottom_diff:
-                #    ir_top_pid.ignore = False
-                #else:
-                #    ir_bottom_pid.ignore = False
-        
+
         else:
             pass
 
@@ -250,7 +246,9 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
         print "DOORWAY"
 
         # exit doorway andd switch back to wall-following
-        if ir_bottom_error < 60 and ir_bottom_diff < 60 and ir_top_error < 100:
+        # if ir_bottom_error < 50 and ir_top_error < 50 and ir_top_diff < 50:
+        # want to decrease error difference as much as possible
+        if ir_top_diff < 50 and (ir_top_error - ir_bottom_error) < 40
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             robot["state"] = 'wall_follow'
 
