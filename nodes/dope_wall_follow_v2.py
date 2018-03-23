@@ -7,10 +7,11 @@ from std_srvs.srv import Empty
 from advanced_robotics_team6.srv import PololuCmd
 from tf.transformations import euler_from_quaternion
 import math
+import csv
 from drivers import pid_driver
 
 WRITE_DATA = True
-if WRITEDATA:
+if WRITE_DATA:
     print "OPENING CSV"
     csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data.csv", "a")
     writer = csv.writer(csv_out)
@@ -47,7 +48,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
         # either top or bottom IR has detected corner
-        if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2:
+        if ir_bottom_error > BOTTOM_C_MIN * 1.3 and ir_top_error > 50 and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -63,7 +64,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.imu_setpoint(imu_setpoint)
             robot["state"] = 'corner'
         # either top or bottom IR has detected doorway
-        elif ir_top_error > TOP_D_MIN or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX):
+        elif ir_top_error > TOP_D_MIN and ir_top_diff > 50  or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX and ir_bottom_diff > 50):
 
             print "DOORWAY DETECTED"
 

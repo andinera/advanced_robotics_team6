@@ -10,7 +10,7 @@ motor_center: 6000
 steering_center: 5800
 
 # Initial motor speed
-motor_speed: 6250
+motor_speed: 6200
 # Servo set position rate (Hz)
 rate: 50
 # Number of sensor readings averaged over

@@ -227,12 +227,17 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
 
-            # check to make sure that at leeast one IR sensor PID control is on
+            # if both IR derivs are semi-large use IMU WALL PID momentarily
             if ir_top_pid.ignore and ir_bottom_pid.ignore:
-                if ir_top_diff < ir_bottom_diff:
-                    ir_top_pid.ignore = False
-                else:
-                    ir_bottom_pid.ignore = False
+                print "IR DERIVS UNSTABLE - ENABLE IMU WALL PID"
+                imu_wall_pid.ignore = False
+            elif not imu_wall_pid.ignore:
+                print "DISABLING IMU WALL PID"
+                imu_wall_pid.ignore = True
+                #if ir_top_diff < ir_bottom_diff:
+                #    ir_top_pid.ignore = False
+                #else:
+                #    ir_bottom_pid.ignore = False
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"

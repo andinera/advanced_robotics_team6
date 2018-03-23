@@ -110,7 +110,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
     elif robot["state"] == 'corner':
         print "CORNERING"
-        rospy.loginfo("CORNERING:\t{}\t{}".format(imu_corner_pid))
+        rospy.loginfo("CORNERING:\t{}".format(imu_corner_pid))
         if imu_corner_error < math.pi/4.5:
             print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
@@ -258,7 +258,7 @@ def odroid():
         ir_top_pid.ir_setpoint()
 
         # Set zero intial velocity and steering
-        motor_srv(MOTER_CENTER)
+        motor_srv(MOTOR_CENTER)
         steering_srv(STEERING_CENTER)
 
 
@@ -267,7 +267,7 @@ def odroid():
         rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(MOTOR_SPEED)
+        motor_srv(6200)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
