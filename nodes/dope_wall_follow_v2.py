@@ -47,8 +47,16 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
         rospy.loginfo("ir_top_error:\t%f",ir_top_error)
+		#corner near state
+		if ir_bottom_error > 200 and ir_bottom_error < 1800 and ir_bottom_diff > 500 and imu_corner_pid.doorways_seen > DOORWAYS_SEEN_THRESHOLD and imu_corner_pid.turns_completed < 2:
+			ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            imu_wall_pid.ignore = False
+			imu_corner_pid.ignore = True
+            robot["state"] = 'corner_near'
+			
         # either top or bottom IR has detected corner
-        if ir_bottom_error > BOTTOM_C_MIN * 1.3 and ir_top_error > 50 and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2:
+        elif ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
             print "CORNER DETECTED"
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -65,7 +73,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         elif ir_top_error > TOP_D_MIN and ir_top_diff > 50  or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX and ir_bottom_diff > 50):
 
             print "DOORWAY DETECTED"
-
+			imu_corner_pid.doorways_seen += 1
             # ignore IR sensor that has detected doorway
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -108,13 +116,13 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #ir_top_pid.ignore = True
             #robot["state"] = 'wall_follow'
             #print "exit becasue top corner threshold"
-	if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+		if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
             imu_corner_pid.ignore = False
             imu_wall_pid.ignore = True
             imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
-            rospy.sleep(.001)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
+			rospy.sleep(.001)
     	    robot["state"] = 'corner'
             print "exit to corner because bottom corner threshold"
 
@@ -156,15 +164,55 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 imu_corner_pid.ignore = True
 
                 robot["state"] = 'wall_follow'
-		imu_corner_pid.turns_completed += 1
+				imu_corner_pid.turns_completed += 1
 
             elif ir_top_error < TOP_C_MIN:
                 # turn top IR PID control back on
                 ir_bottom_pid.ignore = True
                 ir_top_pid.ignore = False
-                imu_wall_pid.ignore = True     # may not want to use imu_pid to do wall-following
+                imu_wall_pid.ignore = True    
                 imu_corner_pid.ignore = True
                 print "Using top ir sensor for wall follow"
+
+    elif robot["state"] == 'corner_near':
+		#enter corner
+		if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+			ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            imu_wall_pid.ignore = True    
+            imu_corner_pid.ignore = False
+			robot["state"] = 'corner'
+		#enter wall follow
+		elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
+			imu_corner_pid.doorways_seen += 1
+            ir_bottom_pid.ignore = False
+            ir_top_pid.ignore = False
+            imu_wall_pid.ignore = True
+            robot["state"] = 'wall_follow'
+            print "Exited Doorway with standard method"
+		#enter doorway
+		elif ir_top_error > TOP_D_MIN and ir_top_diff > 50  or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX and ir_bottom_diff > 50):
+		if imu_corner_pid.accel_data_states[-1] < ACCELERATION_MIN:
+			robot["state"] = 'corner_near_stopped'
+
+	elif robot["state"] == 'corner_near_stopped':
+		if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+			ir_bottom_pid.ignore = True
+            ir_top_pid.ignore = True
+            imu_wall_pid.ignore = False    
+            imu_corner_pid.ignore = True
+			robot["state"] = 'corner'
+		#enter doorway
+		elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
+			imu_corner_pid.doorways_seen += 1
+            ir_bottom_pid.ignore = False
+            ir_top_pid.ignore = False
+            imu_wall_pid.ignore = True
+            robot["state"] = 'wall_follow'
+            print "Exited Doorway with standard method"
+		#enter doorway
+		elif ir_top_error > TOP_D_MIN and ir_top_diff > 50  or (ir_bottom_error > BOTTOM_D_MIN and ir_bottom_error < BOTTOM_D_MAX and ir_bottom_diff > 50):
+
 
     else:
         print "Entered default case in state machine."
@@ -211,6 +259,15 @@ def madgwick_callback(data, args):
     if len(imu_corner_pid.recorded_states) >= NUM_READINGS:
         del imu_corner_pid.recorded_states[0]
     imu_corner_pid.recorded_states.append(angles[2])
+
+	velocity.x = data.linear_acceleration.x
+	velocity.y = data.linear_acceleration.y
+	velocity.z = data.linear_acceleration.z
+
+	if len(imu_corner_pid.accel_data_states) >= NUM_READINGS:
+        del imu_corner_pid.accel_data_states[0]
+	
+    imu_corner_pid.accel_data_states.append(velocity)
 
 
 # Callbacks for recording data from top IR sensor
@@ -316,17 +373,21 @@ def odroid():
 
         # Count iterations: can be used for debugging or other miscellaneous needs
         count = 0
+	previous_state = robot["state"]
         while not rospy.is_shutdown():
-            if robot["state"] == 'wall_follow':
-                motor_srv(6350)
-            elif robot["state"] == 'corner':
-                motor_srv(6200)
-            else:
-                motor_srv(6200)
-            #for _ in range(NUM_READINGS):
-            #    ir_bottom_callback(ir_bottom.get_position(), ir_bottom_pid)
-            #    ir_top_callback(ir_top.get_position(), ir_top_pid)
-
+	#set speeds for different states
+	    if previous_state != robot[state]:
+            	if robot["state"] == 'wall_follow':
+                    motor_srv(WALL_SPEED)
+           	elif robot["state"] == 'corner':
+                    motor_srv(CORNER_SPEED)
+	    	elif robot["state"] == 'near_corner':
+		    motor_srv(NEAR_CORNER_SPEED)
+	    	elif robot["state"] == 'near_corner_stopped':
+		    motor_srv(NEAR_CORNER_STOPPED_SPEED)
+            	else:
+                    motor_srv(DOOR_SPEED)
+            
             # Publish sensor states
             ir_bottom_pid.ir_publish_state()
             ir_top_pid.ir_publish_state()
@@ -386,6 +447,13 @@ if __name__ == '__main__':
     TOP_D_MIN = 500
     BOTTOM_D_MIN = 90
     BOTTOM_D_MAX = 700
+    WALL_SPEED = 6350
+    DOOR_SPEED = 6250
+    CORNER_SPEED = 6200
+    CORNER_NEAR_SPEED = 4500
+    CORNER_NEAR_STOPPED_SPEED = 6200
+	ACCELERATION_MIN = 0.0001
+	DOORWAYS_SEEN_THRESHOLD = 0
 
 
 
