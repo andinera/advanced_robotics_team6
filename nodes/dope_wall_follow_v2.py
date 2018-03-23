@@ -10,7 +10,7 @@ import math
 import csv
 from drivers import pid_driver
 
-WRITE_DATA = True
+WRITE_DATA = False
 if WRITE_DATA:
     print "OPENING CSV"
     csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data1.csv", "a")
@@ -333,17 +333,10 @@ def odroid():
             imu_wall_pid.imu_publish_state()
             imu_corner_pid.imu_publish_state(imu_wall_pid.state.data)
 
-            # Heuristics
-            # steering_cmd = test_imu(ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-            # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
-            # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
-            #                           ir_bottom_state,ir_top_state,imu_state)
             steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
-            #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
             steering_cmd += STEERING_CENTER
-            #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
             # Print statements
