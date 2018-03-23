@@ -30,7 +30,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
 
     if robot["state"] == 'wall_follow':
         print "WALL-FOLLOW"
-        motor_srv(6200)
+        motor_srv(6250)
         rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
         rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
         rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
@@ -39,7 +39,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         if ir_bottom_error > 1000 and ir_bottom_diff > 1000 and corner_count < 3:
             print "CORNER DETECTED"
             robot["state"] = 'corner'
-            motor_srv(6300)
+            motor_srv(6150)
             corner_count += 1
             ir_bottom_pid.ignore = True
             ir_top_pid.ignore = True
@@ -237,7 +237,7 @@ def odroid():
         rospy.sleep(1)
 
         # Set forward speed
-        motor_srv(6200)
+        motor_srv(6250)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
