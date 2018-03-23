@@ -282,6 +282,9 @@ def odroid():
         imu_wall_pid.imu_setpoint(imu_corner_pid.setpoint.data)
         ir_bottom_pid.ir_setpoint()
         ir_top_pid.ir_setpoint()
+	#ir_bottom_pid.ir_setpoint(170)
+        #ir_top_pid.ir_setpoint(140)
+
 
         # Set zero intial velocity and steering
         motor_srv(MOTOR_CENTER)
