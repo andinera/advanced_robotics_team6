@@ -13,7 +13,7 @@ from drivers import pid_driver
 WRITE_DATA = True
 if WRITE_DATA:
     print "OPENING CSV"
-    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data.csv", "a")
+    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data1.csv", "a")
     writer = csv.writer(csv_out)
 
 def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
@@ -109,10 +109,9 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             #robot["state"] = 'wall_follow'
             #print "exit becasue top corner threshold"
 	if ir_bottom_error > BOTTOM_C_MIN and ir_top_error > TOP_C_MIN and ir_top_error < TOP_C_MAX and imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
-            ir_bottom_pid.ignore = True
-            robot["state"] = 'corner'
+            imu_corner_pid.ignore = False
+            imu_wall_pid.ignore = True
             imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
-            print "set imu setpoint to 90"
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
     	    robot["state"] = 'corner'
@@ -285,15 +284,15 @@ def odroid():
         ir_top_pid.ir_setpoint()
 
         # Set zero intial velocity and steering
-        motor_srv(CENTER)
-        steering_srv(CENTER)
+        motor_srv(MOTOR_CENTER)
+        steering_srv(STEERING_CENTER)
 
         #motor.set_target(CENTER)
         #steering.set_target(CENTER)
         rospy.sleep(1)
 
-        #motor_srv(6400)
-        #rospy.sleep(1)
+        motor_srv(6350)
+        rospy.sleep(0.5)
 
         # Set forward speed
         motor_srv(6300)
@@ -315,6 +314,8 @@ def odroid():
         while not rospy.is_shutdown():
             if robot["state"] == 'wall_follow':
                 motor_srv(6300)
+            elif robot["state"] == 'corner':
+                motor_srv(6150)
             else:
                 motor_srv(6200)
             #for _ in range(NUM_READINGS):
@@ -336,7 +337,7 @@ def odroid():
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
             # Set steering target
-            steering_cmd += CENTER
+            steering_cmd += STEERING_CENTER
             #steering.set_target(steering_cmd)
             steering_srv(steering_cmd)
 
@@ -379,6 +380,8 @@ if __name__ == '__main__':
     IMU_RESET_THRESHOLD = rospy.get_param('~imu_reset_threshold')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
     TOP_CORNER_ERROR_THRESHOLD = rospy.get_param('~top_corner_error_threshold')
+    MOTOR_CENTER = rospy.get_param('~motor_center')
+    STEERING_CENTER = rospy.get_param('~steering_center')
     TOP_C_MIN = 75
     TOP_C_MAX = 500
     BOTTOM_C_MIN = 700

@@ -248,7 +248,7 @@ def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_c
         # exit doorway andd switch back to wall-following
         # if ir_bottom_error < 50 and ir_top_error < 50 and ir_top_diff < 50:
         # want to decrease error difference as much as possible
-        if ir_top_diff < 50 and (ir_top_error - ir_bottom_error) < 40
+        if ir_top_diff < 50 and (ir_top_error - ir_bottom_error) < 40:
             print "EXITING DOORWAY: RETURNING TO WALL-FOLLOW"
             robot["state"] = 'wall_follow'
 
