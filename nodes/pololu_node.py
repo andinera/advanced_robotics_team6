@@ -23,7 +23,7 @@ if __name__ == '__main__':
     rospy.init_node('ir_publisher', anonymous=True)
     ir_bottom_pub = rospy.Publisher('pololu/bottom_IR/data', Float64, queue_size=1)
     ir_top_pub = rospy.Publisher('pololu/top_IR/data', Float64, queue_size=1)
-    rate = rospy.Rate(500)
+    rate = rospy.Rate(1000)
     ir_state = Float64()
 
     motor_srv = rospy.Service('motor_cmd', PololuCmd, motor_handler)

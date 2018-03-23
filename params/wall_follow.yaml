@@ -12,7 +12,7 @@ steering_center: 5800
 # Initial motor speed
 motor_speed: 6250
 # Servo set position rate (Hz)
-rate: 50
+rate: 100
 # Number of sensor readings averaged over
 num_readings: 10
 # Top IR sensor estimated angle counter-clockwise from the x-axis (degrees)

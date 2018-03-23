@@ -112,10 +112,12 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_corner_pid.ignore = False
             imu_wall_pid.ignore = True
             imu_setpoint = imu_wall_pid.recorded_states[-1] - math.radians(90)
+            rospy.sleep(.001)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
     	    robot["state"] = 'corner'
-            print "exit to wall_follow because bottom corner threshold"
+            print "exit to corner because bottom corner threshold"
+
 
         elif ir_bottom_error < 100 and ir_top_error < 100 and ir_bottom_diff < 30 and ir_top_diff < 30:
             ir_bottom_pid.ignore = False
@@ -280,10 +282,10 @@ def odroid():
         rospy.sleep(0.25)
         imu_corner_pid.imu_setpoint()
         imu_wall_pid.imu_setpoint(imu_corner_pid.setpoint.data)
-        #ir_bottom_pid.ir_setpoint()
-        #ir_top_pid.ir_setpoint()
-        ir_bottom_pid.ir_setpoint(170)
-        ir_top_pid.ir_setpoint(140)
+        ir_bottom_pid.ir_setpoint(125)
+        ir_top_pid.ir_setpoint(130)
+        #ir_bottom_pid.ir_setpoint(170)
+        #ir_top_pid.ir_setpoint(140)
 
 
         # Set zero intial velocity and steering
@@ -294,11 +296,11 @@ def odroid():
         #steering.set_target(CENTER)
         rospy.sleep(1)
 
-        motor_srv(6350)
+        motor_srv(6450)
         rospy.sleep(0.5)
 
         # Set forward speed
-        motor_srv(6300)
+        motor_srv(6400)
         print "MOTOR SPEED: ", MOTOR_SPEED
         #motor.set_target(MOTOR_SPEED)
 
@@ -316,9 +318,9 @@ def odroid():
         count = 0
         while not rospy.is_shutdown():
             if robot["state"] == 'wall_follow':
-                motor_srv(6300)
+                motor_srv(6350)
             elif robot["state"] == 'corner':
-                motor_srv(6150)
+                motor_srv(6200)
             else:
                 motor_srv(6200)
             #for _ in range(NUM_READINGS):
