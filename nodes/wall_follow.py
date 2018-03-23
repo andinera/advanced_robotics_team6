@@ -146,7 +146,7 @@ def DOPEStateMachine(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
     return steering_cmd
 
 # written based on the ir_course_data_<obstacle>_1 dataset
-def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
+def stateMachine_ccs(robot,motor_srv,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid):
 
     if len(imu_corner_pid.reported_states) < 2:
         return 0
@@ -176,6 +176,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
         print "WALL-FOLLOW"
 
         # doorway detected (window/door combos will be mistaken for doorways)
+        # may want to increase to aroun 650 based on data
         if ir_top_error > 500 or ir_top_diff > 500:
             print "DOORWAY DETECTED"
             robot["state"] = 'doorway'
@@ -210,29 +211,40 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
 
+            # decrease motor speed during turn:
+            motor_srv(MOTOR_SPEED - 50)
+
         # continue wall-following
-        else:
+        elif False:
             # momentarily ignore IR top or bottom steering commands for semi-large derivative spikes
-            if ir_top_diff > 60 and not ir_top_pid.ignore:
+            if ir_top_diff > 75 and not ir_top_pid.ignore:
                 print "DISABLING TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = True
-            elif ir_top_diff < 60 and ir_top_pid.ignore:
+            elif ir_top_diff < 75 and ir_top_pid.ignore:
                 print "RE-ENABLE TOP IR IN DEFAULT CASE"
                 ir_top_pid.ignore = False
 
-            if ir_bottom_diff > 60 and not ir_bottom_pid.ignore:
+            if ir_bottom_diff > 75 and not ir_bottom_pid.ignore:
                 print "DISABLING BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = True
-            elif ir_bottom_diff < 60 and ir_bottom_pid.ignore:
+            elif ir_bottom_diff < 75 and ir_bottom_pid.ignore:
                 print "RE-ENABLE BOTTOM IR IN DEFAULT CASE"
                 ir_bottom_pid.ignore = False
 
-            # check to make sure that at leeast one IR sensor PID control is on
+            # if both IR derivs are semi-large use IMU WALL PID momentarily
             if ir_top_pid.ignore and ir_bottom_pid.ignore:
-                if ir_top_diff < ir_bottom_diff:
-                    ir_top_pid.ignore = False
-                else:
-                    ir_bottom_pid.ignore = False
+                print "IR DERIVS UNSTABLE - ENABLE IMU WALL PID"
+                imu_wall_pid.ignore = False
+            elif not imu_wall_pid.ignore:
+                print "DISABLING IMU WALL PID"
+                imu_wall_pid.ignore = True
+                #if ir_top_diff < ir_bottom_diff:
+                #    ir_top_pid.ignore = False
+                #else:
+                #    ir_bottom_pid.ignore = False
+        
+        else:
+            pass
 
     elif robot["state"] == 'doorway':
         print "DOORWAY"
@@ -247,7 +259,7 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_wall_pid.ignore = True
 
         # doorway mistaken for corner - needs further tuning (could decrease these values)
-        elif ir_bottom_error > 1500 or ir_bottom_diff > 1000:
+        elif (ir_bottom_error > 1500 or ir_bottom_diff > 1000) and ir_top_error > 500:
             print "CORNER MISTAKEN FOR DOORWAY: ENTERING CORNER"
             robot["state"] = 'corner'
 
@@ -263,6 +275,9 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
             imu_setpoint = imu_wall_pid.state.data - math.radians(90)
             imu_wall_pid.imu_setpoint(imu_setpoint)
             imu_corner_pid.imu_setpoint(imu_setpoint)
+
+            # decrease motor speed during turn:
+            motor_srv(MOTOR_SPEED - 50)
 
         else:
             # re-enable top IR PID once it has cleared doorway
@@ -289,6 +304,9 @@ def stateMachine_ccs(robot,ir_bottom_pid,ir_top_pid,imu_wall_pid,imu_corner_pid)
                 ir_top_pid.ignore = False
                 imu_wall_pid.ignore = True      # may not want to use imu_pid to do wall-following
                 imu_corner_pid.ignore = True
+
+                # increase motor speed after turn:
+                motor_srv(MOTOR_SPEED)
 
         else:
             # log imu_corner_pid state and setpoint error during turn
@@ -904,7 +922,7 @@ def odroid():
             # steering_cmd = heuristic3(ir_bottom_pid,ir_top_pid,imu_pid)
             # steering_cmd = heuristic4(ir_bottom_pid,ir_top_pid,imu_pid, \
             #                           ir_bottom_state,ir_top_state,imu_state)
-            steering_cmd = stateMachine_ccs(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
+            steering_cmd = stateMachine_ccs(robot, motor_srv, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
             #steering_cmd = DOPEStateMachine(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
             #steering_cmd = kodiesStateMachine1(robot, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid)
 
@@ -963,8 +981,9 @@ if __name__ == '__main__':
     MOTOR_CENTER = rospy.get_param('~motor_center')
     STEERING_CENTER = rospy.get_param('~steering_center')
 
-    # redefine DOOR and CORNER thresholds
+    # remap constants for testing
     IMU_THRESHOLD = math.radians(15)
+    MOTOR_SPEED = 6250
 
     try:
         odroid()

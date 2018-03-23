@@ -8,6 +8,3 @@ from random import uniform
 
 if __name__ == '__main__':
     rospy.init_node('test_node', anonymous=True)
-
-    for _ in range(100):
-        print uniform(100,200)
