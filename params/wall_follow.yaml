@@ -1,6 +1,6 @@
 
 # Testing without hardware
-dummy_mode: true
+dummy_mode: false
 # Sensor position values
 min: 4095
 max: 7905
