@@ -18,14 +18,8 @@ class Driver:
         self.state = Float64()
         # Attributes used for miscellaneous heuristics
         self.ignore = False             # Ignore sensor
-        self.turning = False            # Entering a corner
         self.reported_states = []       # Last states sent to the PID
         self.recorded_states = []       # Last states measured by IMU
-		self.accel_data_states = []
-        self.turns_completed = 0
-		self.doorways_seen = 0
-        self.last_turn_time = None
-        self.sync = 0
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)

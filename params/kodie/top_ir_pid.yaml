@@ -9,10 +9,10 @@ lower_limit: -1705
 windup_limit: 10
 cutoff_frequency: 12
 # Topic names
-topic_from_controller: odroid/top_IR/pid/control_effort
-topic_from_plant: odroid/top_IR/pid/state
-setpoint_topic: odroid/top_IR/pid/setpoint
-pid_enable_topic: odroid/top_IR/pid/enable
+topic_from_controller: odroid/top_ir/pid/control_effort
+topic_from_plant: odroid/top_ir/pid/state
+setpoint_topic: odroid/top_ir/pid/setpoint
+pid_enable_topic: odroid/top_ir/pid/enable
 # Node name
 node_name: ir_top_pid
 # Bounds for publishing and subscribing at 50 Hz

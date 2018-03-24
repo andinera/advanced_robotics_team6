@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from drivers import pololu
+from drivers import dummy_pololu as pololu
 from std_msgs.msg import Float64
 from advanced_robotics_team6.srv import PololuCmd, PololuCmdResponse
 

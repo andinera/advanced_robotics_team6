@@ -10,10 +10,10 @@ lower_limit: -1705
 windup_limit: 10
 cutoff_frequency: 12
 # Topic names
-topic_from_controller: odroid/IMU_CORNER/pid/control_effort
-topic_from_plant: odroid/IMU_CORNER/pid/state
-setpoint_topic: odroid/IMU_CORNER/pid/setpoint
-pid_enable_topic: odroid/IMU_CORNER/pid/enable
+topic_from_controller: odroid/imu_corner/pid/control_effort
+topic_from_plant: odroid/imu_corner/pid/state
+setpoint_topic: odroid/imu_corner/pid/setpoint
+pid_enable_topic: odroid/imu_corner/pid/enable
 # Node name
 node_name: imu_corner_pid
 # Bounds for publishing and subscribing at 50 Hz
