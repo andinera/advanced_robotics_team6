@@ -132,9 +132,9 @@ def odroid():
             print "Developer not specified."
             return
 
-        while not rospy.is_shutdown():
+        timer = rospy.get_rostime() + rospy.Duration(1.0/RATE)
 
-            time = rospy.get_rostime()
+        while not rospy.is_shutdown():
 
             while SMACH and wall_follower.sync == 1:
                 pass
@@ -156,8 +156,10 @@ def odroid():
                 steering_srv(steering_cmd)
 
             # Iterate at frequency of RATE
-            while time + rospy.Duration(1.0/RATE) > rospy.get_rostime():
+            while timer > rospy.get_rostime():
                 pass
+            timer += rospy.Duration(1.0/RATE)
+            print timer
 
         wall_follower.finish()
 
