@@ -132,11 +132,11 @@ def odroid():
             print "Developer not specified."
             return
 
-        timer = rospy.get_rostime() + rospy.Duration(1.0/RATE)
+        timer = rospy.get_rostime() + rospy.Duration(1.0/FREQUENCY)
 
         while not rospy.is_shutdown():
 
-            while SMACH and wall_follower.sync == 1:
+            while not rospy.is_shutdown() and SMACH and wall_follower.sync == 1:
                 pass
             if SMACH:
                 wall_follower.sync = 1
@@ -155,12 +155,11 @@ def odroid():
                 steering_cmd += STEERING_CENTER
                 steering_srv(steering_cmd)
 
-            # Iterate at frequency of RATE
-            while timer > rospy.get_rostime():
+            # Iterate at set frequency
+            while not rospy.is_shutdown() and timer > rospy.get_rostime():
                 pass
-            timer += rospy.Duration(1.0/RATE)
-            print timer
-
+            timer += rospy.Duration(1.0/FREQUENCY)
+            print 'odroid: ', timer
         wall_follower.finish()
 
 
@@ -174,7 +173,7 @@ if __name__ == '__main__':
     MAX = rospy.get_param('~max')
     MOTOR_CENTER = rospy.get_param('~motor_center')
     STEERING_CENTER = rospy.get_param('~steering_center')
-    RATE = rospy.get_param('~rate')
+    FREQUENCY = rospy.get_param('~frequency')
     NUM_READINGS = rospy.get_param('~num_readings')
     NUM_STATES_STORED = rospy.get_param('~num_states_stored')
     DEV = rospy.get_param('~developer')

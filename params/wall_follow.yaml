@@ -4,8 +4,8 @@ min: 4095
 max: 7905
 motor_center: 6000
 steering_center: 5800
-# Servo set position rate (Hz)
-rate: 50
+# Servo set target frequency (Hz)
+frequency: 50
 # Number of sensor readings averaged over
 num_readings: 10
 # Number of previous sensor states to save

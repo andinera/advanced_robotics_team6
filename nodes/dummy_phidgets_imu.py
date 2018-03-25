@@ -7,11 +7,16 @@ from random import uniform
 
 if __name__ == '__main__':
     rospy.init_node('dummy_imu', anonymous=True)
+
+    FREQUENCY = rospy.get_param('~frequency')
+
     pub_data = rospy.Publisher('imu/data_raw', Imu, latch=True, queue_size=1)
     pub_mag = rospy.Publisher('imu/mag', MagneticField, latch=True, queue_size=1)
-    rate = rospy.Rate(500)
+
     imu = Imu()
     mag = MagneticField()
+    timer = rospy.get_rostime() + rospy.Duration(1.0/FREQUENCY)
+
     while not rospy.is_shutdown():
         imu.header.stamp = rospy.Time.now()
         imu.header.frame_id = 'imu'
@@ -39,4 +44,7 @@ if __name__ == '__main__':
         pub_data.publish(imu)
         pub_mag.publish(mag)
 
-        rate.sleep()
+        # Iterate at frequency of RATE
+        while not rospy.is_shutdown() and timer > rospy.get_rostime():
+            pass
+        timer += rospy.Duration(1.0/FREQUENCY)
