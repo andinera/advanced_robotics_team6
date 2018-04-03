@@ -4,7 +4,7 @@ import rospy
 import math
 
 import wall_follower_smach
-import threading
+import multiprocessing
 
 
 class Wall_Follower:
@@ -32,9 +32,9 @@ class Wall_Follower:
         # Set forward speed
         self.motor_srv(self.motor_speed)
 
-        self.t = threading.Thread(target = wall_follower_smach.main,
+        self.p = multiprocessing.Thread(target = wall_follower_smach.main,
                                   args = (self,))
-        self.t.start()
+        self.p.start()
 
     def execute(self):
         pass
