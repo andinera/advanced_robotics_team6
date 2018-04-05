@@ -2,7 +2,10 @@
 
 import rospy
 
-offline = rospy.get_param('offline')
+try:
+    offline = rospy.get_param('offline')
+except KeyError:
+    offline = True
 
 import cns_driver
 if offline:

@@ -2,7 +2,7 @@
 
 import rospy
 import sys
-from threading import Event
+from threading import Thread, Event
 
 from advanced_robotics_team6.scripts import *
 
@@ -29,7 +29,8 @@ if __name__ == '__main__':
         print "Developer not specified."
         sys.exit()
     # Run state machine
-    wall_follower.execute()
+    Thread(target=wall_follower.execute).start()
+    # wall_follower.execute()
     # Initialize timer to iterate at set frequency
     timer = rospy.get_rostime() + rospy.Duration(1.0/FREQUENCY)
     # Begin iterations at set freuqency

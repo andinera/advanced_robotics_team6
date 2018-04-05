@@ -3,7 +3,6 @@
 import rospy
 import math
 import wall_follow_smach
-from threading import Thread
 
 from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
@@ -27,25 +26,22 @@ class Wall_Follower:
         self.top_ir_pid = pid_driver.PID("ir/top", NUM_STATES_STORED)
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
-
+        # Publish PID setpoints
         self.bottom_ir_pid.ir_setpoint(setpoint=170)
         self.top_ir_pid.ir_setpoint(setpoint=140)
-        self.wall_imu_pid.imu_setpoint(self.cns.imu_states['orientation']['z'])
+        self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
-
         # Servo output services
         rospy.wait_for_service('motor_cmd')
         rospy.wait_for_service('steering_cmd')
         self.motor_srv = rospy.ServiceProxy('motor_cmd', PololuCmd)
         self.steering_srv = rospy.ServiceProxy('steering_cmd', PololuCmd)
-        # Initialize state machine process
-        self.t = Thread(target=wall_follow_smach.main, args=(self,))
         # Initialize servo and motor to neutral
         self.motor_srv(MOTOR_CENTER)
         self.steering_srv(STEERING_CENTER)
 
     def execute(self):
-        self.t.start()
+        wall_follow_smach.main(self)
 
     def publish_states(self):
         self.bottom_ir_pid.ir_publish_state(self.cns.bottom_ir_states)
@@ -53,7 +49,7 @@ class Wall_Follower:
         self.wall_imu_pid.imu_publish_state(self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_publish_state(state=self.wall_imu_pid.state.data)
 
-    def pub_steering_cmd(self):
+    def publish_steering_cmd(self):
         # Set steering command as average of steering commands that we want to use
         i = 0
         steering_cmd = 0

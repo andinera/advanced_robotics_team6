@@ -82,7 +82,7 @@ class Wall(smach.State):
             elif ir_top_error > wf.corner_error_threshold:
                 wf.top_ir_pid.ignore = True
 
-        wf.pub_steering_cmd()
+        wf.publish_steering_cmd()
         wf.publish_states()
 
         return rtrn
@@ -114,7 +114,7 @@ class Doorway(smach.State):
 
         rtrn = 'outcome2'
 
-        wf.pub_steering_cmd()
+        wf.publish_steering_cmd()
         wf.publish_states()
 
         return rtrn
@@ -170,7 +170,7 @@ class Corner(smach.State):
             pass
             # log corner_imu_pid state and setpoint error during turn
 
-        wf.pub_steering_cmd()
+        wf.publish_steering_cmd()
         wf.publish_states()
 
         return rtrn
