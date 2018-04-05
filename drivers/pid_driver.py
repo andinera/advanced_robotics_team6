@@ -5,7 +5,7 @@ from std_msgs.msg import Float64, Bool
 import math
 import numpy
 
-class Driver:
+class PID:
     # Initialize PID communications
     def __init__(self, sensor, num_states_stored):
         # Attributes passed during initialization
@@ -19,7 +19,6 @@ class Driver:
         # Attributes used for miscellaneous heuristics
         self.ignore = False             # Ignore sensor
         self.reported_states = []       # Last states sent to the PID
-        self.recorded_states = []       # Last states measured by IMU
 
         # Enable PID controller
         pid_enable = "odroid/{}/pid/enable".format(self.sensor)
@@ -66,17 +65,17 @@ class Driver:
         self.control_effort = int(data.data)
 
     # Initialize IR setpoint
-    def ir_setpoint(self, setpoint=None):
+    def ir_setpoint(self, states=None, setpoint=None):
         if setpoint:
             self.setpoint.data = setpoint
         else:
-            states = self.recorded_states[:]
-            std_dev = numpy.std(states)
-            mean = numpy.mean(states)
-            for state in states[:]:
+            stts = states[:]
+            std_dev = numpy.std(stts)
+            mean = numpy.mean(stts)
+            for state in stts[:]:
                 if state < mean-std_dev or state > mean+std_dev:
-                    states.remove(state)
-            self.setpoint.data = numpy.mean(states)
+                    stts.remove(state)
+            self.setpoint.data = numpy.mean(stts)
         self.setpoint_pub.publish(self.setpoint)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
@@ -84,14 +83,14 @@ class Driver:
         self.state.data = self.setpoint.data
 
     # Initialize IMU setpoint
-    def imu_setpoint(self, setpoint=None):
+    def imu_setpoint(self, states=None, setpoint=None):
         if setpoint:
             self.setpoint.data = setpoint
         else:
-            states = self.recorded_states[:]
+            stts = states[:]
             y = 0
             x = 0
-            for state in states[:]:
+            for state in stts:
                 y += math.sin(state)
                 x += math.cos(state)
             heading = math.atan2(y, x)
@@ -108,28 +107,28 @@ class Driver:
 
 
     # Publish IR sensor state
-    def ir_publish_state(self):
-        states = self.recorded_states[:]
-        std_dev = numpy.std(states)
-        mean = numpy.mean(states)
-        for state in states[:]:
+    def ir_publish_state(self, states):
+        stts = states[:]
+        std_dev = numpy.std(stts)
+        mean = numpy.mean(stts)
+        for state in stts[:]:
                 if state < mean-std_dev or state > mean+std_dev:
-                    states.remove(state)
-        self.state.data = numpy.mean(states)
+                    stts.remove(state)
+        self.state.data = numpy.mean(stts)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
 
     # Publish IMU state
-    def imu_publish_state(self, state=None):
+    def imu_publish_state(self, states=None, state=None):
         if state:
             self.state.data = state
         else:
-            states = self.recorded_states[:]
+            stts = states[:]
             y = 0
             x = 0
-            for state in states[:]:
+            for state in stts:
                 y += math.sin(state)
                 x += math.cos(state)
             self.state.data = math.atan2(y, x)

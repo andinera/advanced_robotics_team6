@@ -1,7 +1,8 @@
+
 # Kp, Ki, Kd should either all be positive or all be negative
-Kp: -40.0
-Ki: -5.0
-Kd: -7.0
+Kp: -6000.0
+Ki: -0.0
+Kd: -0.0
 # [-1905, 1905] because 6000 - 1905 = 4095 and 6000 + 1905 = 7905
 upper_limit: 2105
 lower_limit: -1705
@@ -9,12 +10,12 @@ lower_limit: -1705
 windup_limit: 10
 cutoff_frequency: 12
 # Topic names
-topic_from_controller: odroid/bottom_ir/pid/control_effort
-topic_from_plant: odroid/bottom_ir/pid/state
-setpoint_topic: odroid/bottom_ir/pid/setpoint
-pid_enable_topic: odroid/bottom_ir/pid/enable
+topic_from_controller: odroid/imu/wall/pid/control_effort
+topic_from_plant: odroid/imu/wall/pid/state
+setpoint_topic: odroid/imu/wall/pid/setpoint
+pid_enable_topic: odroid/imu/wall/pid/enable
 # Node name
-node_name: ir_bottom_pid
+node_name: wall_imu_pid
 # Bounds for publishing and subscribing at 50 Hz
 max_loop_frequency: 55.0
 min_loop_frequency: 45.0
