@@ -5,10 +5,10 @@ from sensor_msgs.msg import Imu, MagneticField
 from random import uniform
 
 
+FREQUENCY = 500
+
 if __name__ == '__main__':
     rospy.init_node('dummy_imu', anonymous=True)
-
-    FREQUENCY = rospy.get_param('~frequency')
 
     pub_data = rospy.Publisher('imu/data_raw', Imu, latch=True, queue_size=1)
     pub_mag = rospy.Publisher('imu/mag', MagneticField, latch=True, queue_size=1)
@@ -46,5 +46,5 @@ if __name__ == '__main__':
 
         # Iterate at frequency of RATE
         while not rospy.is_shutdown() and timer > rospy.get_rostime():
-            pass
+            rospy.sleep(0.1/FREQUENCY)
         timer += rospy.Duration(1.0/FREQUENCY)
