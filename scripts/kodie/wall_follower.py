@@ -14,7 +14,7 @@ STEERING_CENTER = 5800
 
 class Wall_Follower:
 
-    def __init__(self):
+    def __init__(self, event):
         self.motor_speed = 6400
 
         self.top_c_min = 75
@@ -31,6 +31,8 @@ class Wall_Follower:
         self.acceleration_min = 0.0001
         self.doorways_seen_threshold = 0
 
+        # Event for synchronizing processes
+        self.event = event
         # Driver for sensor input gathering
         self.cns = cns_driver.CNS()
         # PID drivers
@@ -97,8 +99,13 @@ class Wall_Follower:
                 else:
                     self.motor_srv(self.door_speed)
 
-            if len(self.cns.imu_states['orientation']['z']) < 4:
-                continue
+            while not rospy.is_shutdown() and len(self.cns.imu_states['orientation']['z']) < 4:
+                self.event.wait()
+                self.event.clear()
+                self.publish_states()
+
+            self.event.wait()
+            self.event.clear()
 
             # define setpoint error values for state switching logic
             bottom_ir_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)

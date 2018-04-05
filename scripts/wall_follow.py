@@ -18,11 +18,11 @@ if __name__ == '__main__':
 
     # Initialize Wall_Follower
     if DEV.lower() == "carl":
-        wall_follower = carl.wall_follower.Wall_Follower()
+        wall_follower = carl.wall_follower.Wall_Follower(event)
     elif DEV.lower() == "kodie":
-        wall_follower = kodie.wall_follower.Wall_Follower()
+        wall_follower = kodie.wall_follower.Wall_Follower(event)
     elif DEV.lower() == "wenjin":
-        wall_follower = wenjin.wall_follower.Wall_Follower()
+        wall_follower = wenjin.wall_follower.Wall_Follower(event)
     elif DEV.lower() == "shane":
         wall_follower = shane.wall_follower.Wall_Follower(event)
     else:

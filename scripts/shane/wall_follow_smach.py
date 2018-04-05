@@ -18,7 +18,7 @@ class Wall(smach.State):
 
     def execute(self, userdata):
 
-        while not rospy.is_shutdown() and len(wf.corner_imu_pid.reported_states) < 9:
+        while not rospy.is_shutdown() and len(wf.cns.imu_states['orientation']['z']) < 9:
             wf.event.wait()
             wf.event.clear()
             wf.publish_states()
@@ -34,10 +34,10 @@ class Wall(smach.State):
         imu_corner_error = math.fabs(wf.corner_imu_pid.setpoint.data - wf.corner_imu_pid.state.data)  # [rad]
 
         # finite differencing on state to estimate derivative (divide by timestep?)
-        ir_bottom_diff = math.fabs(wf.bottom_ir_pid.state.data - wf.bottom_ir_pid.reported_states[-9])    # [cm]
-        ir_top_diff = math.fabs(wf.top_ir_pid.state.data - wf.top_ir_pid.reported_states[-9])             # [cm]
-        imu_wall_diff = math.fabs(wf.wall_imu_pid.state.data - wf.wall_imu_pid.reported_states[-9])     # [rad]
-        imu_corner_diff = math.fabs(wf.corner_imu_pid.state.data - wf.corner_imu_pid.reported_states[-9]) # [rad]
+        ir_bottom_diff = math.fabs(wf.bottom_ir_pid.state.data - wf.cns.bottom_ir_states[-9])    # [cm]
+        ir_top_diff = math.fabs(wf.top_ir_pid.state.data - wf.cns.top_ir_states[-9])             # [cm]
+        imu_wall_diff = math.fabs(wf.wall_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9])     # [rad]
+        imu_corner_diff = math.fabs(wf.corner_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9]) # [rad]
         corner_count = 0
 
         wf.motor_srv(6250)
@@ -106,10 +106,10 @@ class Doorway(smach.State):
         imu_corner_error = math.fabs(wf.corner_imu_pid.setpoint.data - wf.corner_imu_pid.state.data)  # [rad]
 
         # finite differencing on state to estimate derivative (divide by timestep?)
-        ir_bottom_diff = math.fabs(bottom_ir_pid.state.data - bottom_ir_pid.reported_states[-2])    # [cm]
-        ir_top_diff = math.fabs(top_ir_pid.state.data - top_ir_pid.reported_states[-2])             # [cm]
-        imu_wall_diff = math.fabs(wall_imu_pid.state.data - corner_imu_pid.reported_states[-2])     # [rad]
-        imu_corner_diff = math.fabs(corner_imu_pid.state.data - corner_imu_pid.reported_states[-2]) # [rad]
+        ir_bottom_diff = math.fabs(wf.bottom_ir_pid.state.data - wf.cns.bottom_ir_states[-9])    # [cm]
+        ir_top_diff = math.fabs(wf.top_ir_pid.state.data - wf.cns.top_ir_states[-9])             # [cm]
+        imu_wall_diff = math.fabs(wf.wall_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9])     # [rad]
+        imu_corner_diff = math.fabs(wf.corner_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9]) # [rad]
         corner_count = 0
 
         rtrn = 'outcome2'
@@ -140,10 +140,11 @@ class Corner(smach.State):
         imu_corner_error = math.fabs(wf.corner_imu_pid.setpoint.data - wf.corner_imu_pid.state.data)  # [rad]
 
         # finite differencing on state to estimate derivative (divide by timestep?)
-        ir_bottom_diff = math.fabs(wf.bottom_ir_pid.state.data - wf.bottom_ir_pid.reported_states[-2])    # [cm]
-        ir_top_diff = math.fabs(wf.top_ir_pid.state.data - wf.top_ir_pid.reported_states[-2])             # [cm]
-        imu_wall_diff = math.fabs(wf.wall_imu_pid.state.data - wf.corner_imu_pid.reported_states[-2])     # [rad]
-        imu_corner_diff = math.fabs(wf.corner_imu_pid.state.data - wf.corner_imu_pid.reported_states[-2]) # [rad]
+        ir_bottom_diff = math.fabs(wf.bottom_ir_pid.state.data - wf.cns.bottom_ir_states[-9])    # [cm]
+        ir_top_diff = math.fabs(wf.top_ir_pid.state.data - wf.cns.top_ir_states[-9])             # [cm]
+        imu_wall_diff = math.fabs(wf.wall_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9])     # [rad]
+        imu_corner_diff = math.fabs(wf.corner_imu_pid.state.data - wf.cns.imu_states['orientation']['z'][-9]) # [rad]
+        corner_count = 0
 
         if imu_corner_error < math.pi/4.5:
 
