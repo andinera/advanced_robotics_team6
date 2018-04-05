@@ -8,14 +8,14 @@ import math
 class Wall_Follower:
 
     def __init__(self, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid,
-                 motor_srv):
+                 motor_srv, cns_driver):
 
         self.ir_bottom_pid = ir_bottom_pid
         self.ir_top_pid = ir_top_pid
         self.imu_wall_pid = imu_wall_pid
         self.imu_corner_pid = imu_corner_pid
         self.motor_srv = motor_srv
-
+        self.cns_driver = cns_driver
         self.motor_speed = 6400
 
         self.top_c_min = 75
@@ -28,8 +28,11 @@ class Wall_Follower:
         self.corner_speed = 6200
         self.near_corner_speed = 4500
         self.near_corner_stopped_speed = 6200
-        self.acceleration_min = 0.0001
+        self.finishing_speed = 6900
+        self.acceleration_min = 0.001
         self.doorways_seen_threshold = 0
+
+
 
         self.write_data = False
 
@@ -53,13 +56,14 @@ class Wall_Follower:
         print "MOTOR SPEED: ", self.motor_speed
 
         self.state = "wall_follow"
+        self.stage = 0 #to know if on first, second or third straightaway
         self.ir_top.ignore = True
         self.imu_wall_pid.ignore = True
         self.imu_corner_pid.ignore = True
-        self.imu_corner_pid.turns_completed = 0
-        self.time_since_turn = rospy.get_time()
+        #self.time_since_turn = rospy.get_time()
 
         self.previous_state = self.state
+        self.previous_stage = self.stage
 
     def execute(self):
         #set speeds for different states
@@ -74,6 +78,11 @@ class Wall_Follower:
                 self.motor_srv(self.near_corner_stopped_speed)
             else:
                 self.motor_srv(self.door_speed)
+        if self.previous_stage != self.stage:
+            if self.stage == 1:
+                #change values of self.top_c_min = 75 self.top_c_max = 300
+            if self.stage == 2:
+                self.motor_srv(self.finishing_speed)
 
         if len(self.imu_corner_pid.reported_states) < 4:
             return 0
@@ -92,6 +101,11 @@ class Wall_Follower:
         imu_corner_diff = math.fabs(self.imu_corner_pid.state.data - self.imu_corner_pid.reported_states[-2])
 
         ir_bottom_average_error = math.fabs(self.ir_bottom_pid.setpoint.data - (self.ir_bottom_pid.reported_states[-1] + self.ir_bottom_pid.reported_states[-2] + self.ir_bottom_pid.reported_states[-3])/3)
+        x_accel = self.cns_driver['linear_acceleration']['x'][-1]
+
+
+
+
 
         if self.write_data:
             print "WRITING DATA"
@@ -115,7 +129,7 @@ class Wall_Follower:
 
             # either top or bottom IR has detected corner
             elif ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
-        imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+        self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
                 print "CORNER DETECTED"
                 ir_bottom_pid.ignore = True
                 imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
@@ -126,7 +140,8 @@ class Wall_Follower:
                 print "set imu setpoint to 90"
                 imu_wall_pid.imu_setpoint(imu_setpoint)
                 imu_corner_pid.imu_setpoint(imu_setpoint)
-                robot["state"] = 'corner'
+                self.state = 'corner'
+                self.stage += 1
             # either top or bottom IR has detected doorway
             elif ir_top_error > self.top_c_max and (ir_bottom_error > self.bottom_d_min and \
         ir_bottom_error < self.bottom_d_max and ir_bottom_diff > 50):
@@ -226,6 +241,7 @@ class Wall_Follower:
                 self.imu_wall_pid.ignore = True
                 self.imu_corner_pid.ignore = False
                 self.state = 'corner'
+                self.stage += 1
     		#enter wall follow
             elif ir_bottom_error < 100 and ir_top > self.top_c_max and ir_bottom_diff < 30:
                 self.imu_corner_pid.doorways_seen += 1
@@ -233,8 +249,8 @@ class Wall_Follower:
                 self.imu_wall_pid.ignore = True
                 self.state = 'wall_follow'
                 print "Exited corner near with standard method"
-            #elif self.imu_corner_pid.accel_data_states[-1] < self.acceleration_min:
-        		#	self.state = 'corner_near_stopped'
+            elif x_accel < self.acceleration_min:
+        		self.state = 'corner_near_stopped'
 
         elif self.state == 'corner_near_stopped':
             if ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
@@ -243,6 +259,7 @@ class Wall_Follower:
                 self.imu_wall_pid.ignore = True
                 self.imu_corner_pid.ignore = False
                 self.state = 'corner'
+                self.stage += 1
     		#enter wall follow
             elif ir_bottom_error < 100 and ir_top > self.top_c_max and ir_bottom_diff < 30:
                 self.imu_corner_pid.doorways_seen += 1
