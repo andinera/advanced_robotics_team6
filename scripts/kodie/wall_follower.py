@@ -13,7 +13,6 @@ STEERING_CENTER = 5800
 class Wall_Follower:
 
     def __init__(self,event):
-
         self.motor_speed = 6400
 
         self.top_c_min = 75
@@ -52,7 +51,7 @@ class Wall_Follower:
         # Initialize servo and motor to neutral
         self.motor_srv(MOTOR_CENTER)
         self.steering_srv(STEERING_CENTER)
-
+        rospy.sleep(1)
 
         self.write_data = False
 
@@ -90,8 +89,11 @@ class Wall_Follower:
     def execute(self):
         #set speeds for different states
         while not rospy.is_shutdown():
+            print self.state
+            print self.stage
             #set speeds for different states
             if self.previous_state != self.state:
+                print "Changing Speed"
                 if self.state == 'wall_follow':
                     self.motor_srv(self.motor_speed)
                 elif self.state == 'corner':
@@ -166,22 +168,22 @@ class Wall_Follower:
                 elif ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
                 self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
                     print "CORNER DETECTED"
-                    bottom_ir_pid.ignore = True
-                    wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
+                    self.bottom_ir_pid.ignore = True
+                    self.wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
 
                 # enable imu_corner_pid
-                    corner_imu_pid.ignore = False
-                    imu_setpoint = wall_imu_pid.setpoint.data - math.radians(90)
+                    self.corner_imu_pid.ignore = False
+                    imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
                     print "set imu setpoint to 90"
-                    wall_imu_pid.imu_setpoint(imu_setpoint)
-                    corner_imu_pid.imu_setpoint(imu_setpoint)
+                    self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+                    self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
                     self.state = 'corner'
                     self.stage += 1
                     # either top or bottom IR has detected doorway
                 elif ir_top > self.top_c_max and (ir_bottom_error > self.bottom_d_min and \
                     ir_bottom_error < self.bottom_d_max and ir_bottom_diff > 50):
                     print "DOORWAY DETECTED"
-                    self.corner_imu_pid.doorways_seen += 1
+
                     # ignore IR sensor that has detected doorway
                     self.bottom_ir_pid.ignore = True
 
@@ -205,6 +207,7 @@ class Wall_Follower:
                         self.bottom_ir_pid.ignore = False
                     elif ir_bottom_error > self.bottom_c_min:
                         self.bottom_ir_pid.ignore = True
+                        self.wall_imu_pid.ignore = False
                         print "ignoring bottom IR while wall following"
 
             elif self.state == 'doorway':
@@ -222,8 +225,8 @@ class Wall_Follower:
                     self.corner_imu_pid.ignore = False
                     self.wall_imu_pid.ignore = True
                     imu_setpoint = self.imu_wall_pid.recorded_states[-1] - math.radians(90)
-                    self.wall_imu_pid.imu_setpoint(imu_setpoint)
-                    self.corner_imu_pid.imu_setpoint(imu_setpoint)
+                    self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+                    self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
                     rospy.sleep(.001)
                     self.state = 'corner'
                     print "exit to corner because bottom corner threshold"
@@ -241,7 +244,6 @@ class Wall_Follower:
                 rospy.loginfo("ir_bottom_state:\t%f", self.bottom_ir_pid.state.data)
                 rospy.loginfo("ir_top_state:\t%f", self.top_ir_pid.state.data)
                 rospy.loginfo("ir_bottom_setpoint:\t%f", self.bottom_ir_pid.setpoint.data)
-                rospy.loginfo("ir_top_setpoint:\t%f", self.top_pid.setpoint.data)
                 rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(imu_corner_error)))
 
             #    print "exited turn due to top IR getting closer"
@@ -312,9 +314,6 @@ class Wall_Follower:
             # Set steering command as average of steering commands that we want to use
         i = 0
         steering_cmd = 0
-        if not self.top_ir_pid.ignore:
-            i += 1
-            steering_cmd += self.top_ir_pid.control_effort
         if not self.bottom_ir_pid.ignore:
             i += 1
             steering_cmd += self.bottom_ir_pid.control_effort
@@ -325,6 +324,7 @@ class Wall_Follower:
             i += 1
             steering_cmd += self.corner_imu_pid.control_effort
         steering_cmd /= i
+        print steering_cmd
         self.steering_srv(STEERING_CENTER + steering_cmd)
 
 
