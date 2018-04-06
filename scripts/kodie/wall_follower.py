@@ -64,6 +64,7 @@ class Wall_Follower:
             self.writer = csv.writer(csv_out)
 
         self.bottom_ir_pid.ir_setpoint(setpoint=125)
+        self.top_ir_pid.ir_setpoint(setpoint=125)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
@@ -87,10 +88,8 @@ class Wall_Follower:
 
 
     def execute(self):
-        print "execute started"
         #set speeds for different states
         while not rospy.is_shutdown():
-            print "in loop"
             #set speeds for different states
             if self.previous_state != self.state:
                 if self.state == 'wall_follow':
@@ -119,8 +118,11 @@ class Wall_Follower:
                 if self.stage == 2:
                     self.motor_srv(self.finishing_speed)
 
-            if len(self.corner_imu_pid.reported_states) < 4:
-                rospy.sleep(.2)
+            while len(self.corner_imu_pid.reported_states) < 4 or len(self.bottom_ir_pid.reported_states) < 4:
+                rospy.sleep(.1)
+                print self.bottom_ir_pid.reported_states
+                print self.corner_imu_pid.reported_states
+                self.publish_states()
             ir_top = self.top_ir_pid.state.data
             # define setpoint error values for state switching logic
             ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)
@@ -136,7 +138,7 @@ class Wall_Follower:
             imu_corner_diff = math.fabs(self.corner_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
 
             ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
-            x_accel = self.cns['linear_acceleration']['x'][-1]
+            x_accel = self.cns.imu_states['linear_acceleration']['x'][-1]
 
 
 
@@ -151,10 +153,9 @@ class Wall_Follower:
                 rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
                 rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
                 rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
-                rospy.loginfo("ir_top_error:\t%f",ir_top_error)
                 #corner near state
                 if ir_bottom_error < 200 and ir_top < 300 and ir_top_difference < 0 \
-                and self.stage < 2 and imu_corner_error < pi/4 \
+                and self.stage < 2 and imu_corner_error < math.pi/4 \
                 and ir_top_difference > -200:
                     self.bottom_ir_pid.ignore = True
                     self.wall_imu_pid.ignore = False
@@ -177,7 +178,7 @@ class Wall_Follower:
                     self.state = 'corner'
                     self.stage += 1
                     # either top or bottom IR has detected doorway
-                elif ir_top_error > self.top_c_max and (ir_bottom_error > self.bottom_d_min and \
+                elif ir_top > self.top_c_max and (ir_bottom_error > self.bottom_d_min and \
                     ir_bottom_error < self.bottom_d_max and ir_bottom_diff > 50):
                     print "DOORWAY DETECTED"
                     self.corner_imu_pid.doorways_seen += 1
@@ -211,7 +212,6 @@ class Wall_Follower:
                 rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
                 rospy.loginfo("ir_top_diff:\t%f", ir_top_diff)
                 rospy.loginfo("ir_bottom_error:\t%f", ir_bottom_error)
-                rospy.loginfo("ir_top_error:\t%f", ir_top_error)
 
             #if ir_top_error > CORNER_THRESHOLD:
                 #ir_top_pid.ignore = True
@@ -297,8 +297,8 @@ class Wall_Follower:
             else:
                 print "Entered default case in state machine."
 
-            publish_states()
-            publish_steering_cmd()
+            self.publish_states()
+            self.publish_steering_cmd()
 
 
 
