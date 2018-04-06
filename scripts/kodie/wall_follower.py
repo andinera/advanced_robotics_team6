@@ -12,8 +12,7 @@ STEERING_CENTER = 5800
 
 class Wall_Follower:
 
-    def __init__(self, ir_bottom_pid, ir_top_pid, imu_wall_pid, imu_corner_pid,
-                 motor_srv):
+    def __init__(self,event):
 
         self.motor_speed = 6400
 
@@ -78,9 +77,9 @@ class Wall_Follower:
 
         self.state = "wall_follow"
         self.stage = 0 #to know if on first, second or third straightaway
-        self.ir_top.ignore = True
-        self.imu_wall_pid.ignore = True
-        self.imu_corner_pid.ignore = True
+        self.top_ir_pid.ignore = True
+        self.wall_imu_pid.ignore = True
+        self.corner_imu_pid.ignore = True
         #self.time_since_turn = rospy.get_time()
 
         self.previous_state = self.state
@@ -155,20 +154,20 @@ class Wall_Follower:
                 and self.imu_corner_pid.doorways_seen > self.doorways_seen_threshold \
                 and self.imu_corner_pid.turns_completed < 2 and imu_corner_error < pi/4 \
                 and ir_top_difference > -200:
-                    self.ir_bottom_pid.ignore = True
-                    self.imu_wall_pid.ignore = False
-                    self.imu_corner_pid.ignore = True
+                    self.bottom_ir_pid.ignore = True
+                    self.wall_imu_pid.ignore = False
+                    self.corner_imu_pid.ignore = True
                     self.state = 'corner_near'
 
             # either top or bottom IR has detected corner
                 elif ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
                 self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
                     print "CORNER DETECTED"
-                    ir_bottom_pid.ignore = True
-                    imu_wall_pid.ignore = True      # don't know of any reason this should be False at this point
+                    bottom_ir_pid.ignore = True
+                    wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
 
                 # enable imu_corner_pid
-                    imu_corner_pid.ignore = False
+                    corner_imu_pid.ignore = False
                     imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
                     print "set imu setpoint to 90"
                     imu_wall_pid.imu_setpoint(imu_setpoint)
