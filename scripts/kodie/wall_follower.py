@@ -170,20 +170,20 @@ class Wall_Follower:
                     corner_imu_pid.ignore = False
                     imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
                     print "set imu setpoint to 90"
-                    imu_wall_pid.imu_setpoint(imu_setpoint)
-                    imu_corner_pid.imu_setpoint(imu_setpoint)
+                    wall_imu_pid.imu_setpoint(imu_setpoint)
+                    corner_imu_pid.imu_setpoint(imu_setpoint)
                     self.state = 'corner'
                     self.stage += 1
                     # either top or bottom IR has detected doorway
                 elif ir_top_error > self.top_c_max and (ir_bottom_error > self.bottom_d_min and \
                     ir_bottom_error < self.bottom_d_max and ir_bottom_diff > 50):
                     print "DOORWAY DETECTED"
-                    self.imu_corner_pid.doorways_seen += 1
+                    self.corner_imu_pid.doorways_seen += 1
                     # ignore IR sensor that has detected doorway
-                    self.ir_bottom_pid.ignore = True
+                    self.bottom_ir_pid.ignore = True
 
                     # use imu wall-following PID controller
-                    self.imu_wall_pid.ignore = False
+                    self.wall_imu_pid.ignore = False
                     self.state = 'doorway'
 
                 else:
@@ -199,9 +199,9 @@ class Wall_Follower:
                     #self.imu_corner_pid.imu_setpoint(imu_setpoint)
 
                     if ir_bottom_error < self.bottom_c_min and ir_top > self.top_c_max:
-                        self.ir_bottom_pid.ignore = False
+                        self.bottom_ir_pid.ignore = False
                     elif ir_bottom_error > self.bottom_c_min:
-                        self.ir_bottom_pid.ignore = True
+                        self.bottom_ir_pid.ignore = True
                         print "ignoring bottom IR while wall following"
 
             elif self.state == 'doorway':
@@ -216,20 +216,20 @@ class Wall_Follower:
                 #robot["state"] = 'wall_follow'
                 #print "exit becasue top corner threshold"
                 if  ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
-                imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
-                    self.imu_corner_pid.ignore = False
-                    self.imu_wall_pid.ignore = True
+                self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+                    self.corner_imu_pid.ignore = False
+                    self.wall_imu_pid.ignore = True
                     imu_setpoint = self.imu_wall_pid.recorded_states[-1] - math.radians(90)
-                    self.imu_wall_pid.imu_setpoint(imu_setpoint)
-                    self.imu_corner_pid.imu_setpoint(imu_setpoint)
+                    self.wall_imu_pid.imu_setpoint(imu_setpoint)
+                    self.corner_imu_pid.imu_setpoint(imu_setpoint)
                     rospy.sleep(.001)
                     self.state = 'corner'
                     print "exit to corner because bottom corner threshold"
 
 
                 elif ir_bottom_error < 50 and ir_bottom_diff < 30:
-                    self.ir_bottom_pid.ignore = False
-                    self.imu_wall_pid.ignore = True
+                    self.bottom_ir_pid.ignore = False
+                    self.wall_imu_pid.ignore = True
 
                     self.state = 'wall_follow'
                     print "Exited Doorway with standard method"
@@ -250,27 +250,27 @@ class Wall_Follower:
 
                     if ir_bottom_error < 150 and ir_bottom_diff < 10:
                     # turn top and bottom IR PID control back on
-                        self.ir_bottom_pid.ignore = False
-                        self.imu_wall_pid.ignore = True
-                        self.imu_corner_pid.ignore = True
+                        self.bottom_ir_pid.ignore = False
+                        self.wall_imu_pid.ignore = True
+                        self.corner_imu_pid.ignore = True
 
                         self.state = 'wall_follow'
-                        self.imu_corner_pid.turns_completed += 1
+                        self.corner_imu_pid.turns_completed += 1
 
             elif self.state == 'corner_near':
     		#enter corner
                 if ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
-                imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
-                    self.ir_bottom_pid.ignore = True
-                    self.imu_wall_pid.ignore = True
-                    self.imu_corner_pid.ignore = False
+                self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+                    self.bottom_ir_pid.ignore = True
+                    self.wall_imu_pid.ignore = True
+                    self.corner_imu_pid.ignore = False
                     self.state = 'corner'
                     self.stage += 1
     		#enter wall follow
                 elif ir_bottom_error < 100 and ir_top > self.top_c_max and ir_bottom_diff < 30:
-                    self.imu_corner_pid.doorways_seen += 1
-                    self.ir_bottom_pid.ignore = False
-                    self.imu_wall_pid.ignore = True
+                    self.corner_imu_pid.doorways_seen += 1
+                    self.bottom_ir_pid.ignore = False
+                    self.wall_imu_pid.ignore = True
                     self.state = 'wall_follow'
                     print "Exited corner near with standard method"
                 elif x_accel < self.acceleration_min:
@@ -278,45 +278,29 @@ class Wall_Follower:
 
             elif self.state == 'corner_near_stopped':
                 if ir_bottom_error > self.bottom_c_min and ir_top < self.top_c_max and \
-                imu_corner_pid.turns_completed < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
-                    self.ir_bottom_pid.ignore = True
-                    self.imu_wall_pid.ignore = True
-                    self.imu_corner_pid.ignore = False
+                self.stage < 2 and ir_top_diff < 100 and ir_bottom_diff > 1000:
+                    self.bottom_ir_pid.ignore = True
+                    self.wall_imu_pid.ignore = True
+                    self.corner_imu_pid.ignore = False
                     self.state = 'corner'
                     self.stage += 1
     		              #enter wall follow
                 elif ir_bottom_error < 100 and ir_top > self.top_c_max and ir_bottom_diff < 30:
-                    self.imu_corner_pid.doorways_seen += 1
-                    self.ir_bottom_pid.ignore = False
-                    self.imu_wall_pid.ignore = True
+                    self.corner_imu_pid.doorways_seen += 1
+                    self.bottom_ir_pid.ignore = False
+                    self.wall_imu_pid.ignore = True
                     self.state = 'wall_follow'
                     print "Exited corner near with standard method"
 
             else:
                 print "Entered default case in state machine."
 
-        # Set steering command as average of steering commands that we want to use
-            i = 0
-            steering_cmd = 0
-            if not self.ir_bottom_pid.ignore:
-                i += 1
-                steering_cmd += self.ir_bottom_pid.control_effort
-                #rospy.loginfo("steering_cmd_bottom:\t{}".format(ir_bottom_pid.control_effort))
+            publish_states()
+            publish_steering_cmd()
 
-            if not self.imu_wall_pid.ignore:
-                i += 1
-                steering_cmd += self.imu_wall_pid.control_effort
-            #rospy.loginfo("steering_cmd_wall:\t{}".format(imu_wall_pid.control_effort))
 
-            if not self.imu_corner_pid.ignore:
-                i += 1
-                steering_cmd += self.imu_corner_pid.control_effort
-            #rospy.loginfo("steering_cmd_corner:\t{}".format(imu_corner_pid.control_effort))
 
-            steering_cmd /= i
-            rospy.loginfo("steering_cmd:\t{}".format(steering_cmd))
 
-            return steering_cmd
     def publish_states(self):
         self.bottom_ir_pid.ir_publish_state(self.cns.bottom_ir_states)
         self.top_ir_pid.ir_publish_state(self.cns.top_ir_states)
