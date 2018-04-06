@@ -84,10 +84,13 @@ class Wall_Follower:
 
         self.previous_state = self.state
         self.previous_stage = self.stage
+        
 
     def execute(self):
+        print "execute started"
         #set speeds for different states
         while not rospy.is_shutdown():
+            print "in loop"
             #set speeds for different states
             if self.previous_state != self.state:
                 if self.state == 'wall_follow':
@@ -101,10 +104,10 @@ class Wall_Follower:
                 else:
                     self.motor_srv(self.door_speed)
 
-            while not rospy.is_shutdown() and len(self.cns.imu_states['orientation']['z']) < 4:
-                self.event.wait()
-                self.event.clear()
-                self.publish_states()
+           # if  len(self.cns.imu_states['orientation']['z']) > 4:
+            #    self.event.wait()
+             #   self.event.clear()
+              #  self.publish_states()
 
             self.event.wait()
             self.event.clear()
@@ -116,23 +119,23 @@ class Wall_Follower:
                 if self.stage == 2:
                     self.motor_srv(self.finishing_speed)
 
-            if len(self.imu_corner_pid.reported_states) < 4:
+            if len(self.corner_imu_pid.reported_states) < 4:
                 return 0
-            ir_top = self.ir_top_pid.state.data
+            ir_top = self.top_ir_pid.state.data
             # define setpoint error values for state switching logic
-            ir_bottom_error = math.fabs(self.ir_bottom_pid.setpoint.data - self.ir_bottom_pid.state.data)
-            imu_wall_error = math.fabs(self.imu_wall_pid.setpoint.data - self.imu_corner_pid.state.data)
-            imu_corner_error = math.fabs(self.imu_corner_pid.setpoint.data - self.imu_corner_pid.state.data)
+            ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)
+            imu_wall_error = math.fabs(self.wall_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
+            imu_corner_error = math.fabs(self.corner_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
 
         # finite differencing on state to estimate derivative (divide by timestep?)
 
-            ir_bottom_diff = math.fabs(self.ir_bottom_pid.state.data - self.ir_bottom_pid.reported_states[-2])
-            ir_top_diff = math.fabs(self.ir_top_pid.state.data - self.ir_top_pid.reported_states[-2])
-            ir_top_difference = self.ir_top_pid.state.data - self.ir_top_pid.reported_states[-2]
-            imu_wall_diff = math.fabs(self.imu_wall_pid.state.data - self.imu_corner_pid.reported_states[-2])
-            imu_corner_diff = math.fabs(self.imu_corner_pid.state.data - self.imu_corner_pid.reported_states[-2])
+            ir_bottom_diff = math.fabs(self.bottom_ir_pid.state.data - self.bottom_ir_pid.reported_states[-2])
+            ir_top_diff = math.fabs(self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2])
+            ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2]
+            imu_wall_diff = math.fabs(self.wall_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
+            imu_corner_diff = math.fabs(self.corner_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
 
-            ir_bottom_average_error = math.fabs(self.ir_bottom_pid.setpoint.data - (self.ir_bottom_pid.reported_states[-1] + self.ir_bottom_pid.reported_states[-2] + self.ir_bottom_pid.reported_states[-3])/3)
+            ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             x_accel = self.cns['linear_acceleration']['x'][-1]
 
 
