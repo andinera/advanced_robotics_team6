@@ -2,6 +2,7 @@
 
 import rospy
 import sys
+import os
 from threading import Thread, Event
 
 from advanced_robotics_team6.scripts import *
@@ -17,17 +18,17 @@ if __name__ == '__main__':
     event = Event()
 
     # Initialize Wall_Follower
-    if DEV.lower() == "carl":
-        wall_follower = carl.wall_follower.Wall_Follower(event)
-    elif DEV.lower() == "kodie":
-        wall_follower = kodie.wall_follower.Wall_Follower(event)
-    elif DEV.lower() == "wenjin":
-        wall_follower = wenjin.wall_follower.Wall_Follower(event)
-    elif DEV.lower() == "shane":
-        wall_follower = shane.wall_follower.Wall_Follower(event)
-    else:
-        print "Developer not specified."
+    try:
+        wall_follower = globals()[DEV].wall_follower.Wall_Follower(event)
+    except KeyError, e:
+        print "Developer not specified:", e
+        nodes = os.popen('rosnode list').readlines()
+        for i in range(len(nodes)):
+            nodes[i] = nodes[i].replace("\n","")
+        for node in nodes:
+            os.system("rosnode kill "+ node)
         sys.exit()
+
     # Run state machine
     Thread(target=wall_follower.execute).start()
     # wall_follower.execute()
