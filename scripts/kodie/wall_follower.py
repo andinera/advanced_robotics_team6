@@ -84,7 +84,7 @@ class Wall_Follower:
 
         self.previous_state = self.state
         self.previous_stage = self.stage
-        
+
 
     def execute(self):
         print "execute started"
@@ -120,11 +120,11 @@ class Wall_Follower:
                     self.motor_srv(self.finishing_speed)
 
             if len(self.corner_imu_pid.reported_states) < 4:
-                return 0
+                rospy.sleep(.2)
             ir_top = self.top_ir_pid.state.data
             # define setpoint error values for state switching logic
             ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)
-            imu_wall_error = math.fabs(self.wall_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
+            imu_wall_error = math.fabs(self.wall_imu_pid.setpoint.data - self.wall_imu_pid.state.data)
             imu_corner_error = math.fabs(self.corner_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
 
         # finite differencing on state to estimate derivative (divide by timestep?)
@@ -132,7 +132,7 @@ class Wall_Follower:
             ir_bottom_diff = math.fabs(self.bottom_ir_pid.state.data - self.bottom_ir_pid.reported_states[-2])
             ir_top_diff = math.fabs(self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2])
             ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2]
-            imu_wall_diff = math.fabs(self.wall_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
+            imu_wall_diff = math.fabs(self.wall_imu_pid.state.data - self.wall_imu_pid.reported_states[-2])
             imu_corner_diff = math.fabs(self.corner_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
 
             ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
@@ -154,8 +154,7 @@ class Wall_Follower:
                 rospy.loginfo("ir_top_error:\t%f",ir_top_error)
                 #corner near state
                 if ir_bottom_error < 200 and ir_top < 300 and ir_top_difference < 0 \
-                and self.imu_corner_pid.doorways_seen > self.doorways_seen_threshold \
-                and self.imu_corner_pid.turns_completed < 2 and imu_corner_error < pi/4 \
+                and self.stage < 2 and imu_corner_error < pi/4 \
                 and ir_top_difference > -200:
                     self.bottom_ir_pid.ignore = True
                     self.wall_imu_pid.ignore = False
@@ -171,7 +170,7 @@ class Wall_Follower:
 
                 # enable imu_corner_pid
                     corner_imu_pid.ignore = False
-                    imu_setpoint = imu_wall_pid.setpoint.data - math.radians(90)
+                    imu_setpoint = wall_imu_pid.setpoint.data - math.radians(90)
                     print "set imu setpoint to 90"
                     wall_imu_pid.imu_setpoint(imu_setpoint)
                     corner_imu_pid.imu_setpoint(imu_setpoint)
@@ -239,11 +238,11 @@ class Wall_Follower:
 
             elif self.state == 'corner':
                 print "CORNERING"
-                rospy.loginfo("ir_bottom_state:\t%f", self.ir_bottom_pid.state.data)
-                rospy.loginfo("ir_top_state:\t%f", self.ir_top_pid.state.data)
-                rospy.loginfo("ir_bottom_setpoint:\t%f", self.ir_bottom_pid.setpoint.data)
-                rospy.loginfo("ir_top_setpoint:\t%f", self.ir_top_pid.setpoint.data)
-                rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(self.imu_corner_pid.state.data), math.degrees(imu_corner_error)))
+                rospy.loginfo("ir_bottom_state:\t%f", self.bottom_ir_pid.state.data)
+                rospy.loginfo("ir_top_state:\t%f", self.top_ir_pid.state.data)
+                rospy.loginfo("ir_bottom_setpoint:\t%f", self.bottom_ir_pid.setpoint.data)
+                rospy.loginfo("ir_top_setpoint:\t%f", self.top_pid.setpoint.data)
+                rospy.loginfo("CORNERING:\t{}\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(imu_corner_error)))
 
             #    print "exited turn due to top IR getting closer"
                 if imu_corner_error < math.pi/9:
@@ -276,7 +275,7 @@ class Wall_Follower:
                     self.wall_imu_pid.ignore = True
                     self.state = 'wall_follow'
                     print "Exited corner near with standard method"
-                elif x_accel < self.acceleration_min:
+                elif math.fabs(x_accel) < self.acceleration_min:
         		    self.state = 'corner_near_stopped'
 
             elif self.state == 'corner_near_stopped':
