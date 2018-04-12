@@ -17,7 +17,7 @@ class Wall_Follower:
         self.motor_speed = 6400
 
         self.top_c_min = 75
-        self.top_c_max = 300
+        self.top_c_max = 250
         self.bottom_c_min = 700
         self.bottom_d_min = 90
         self.bottom_d_max = 700
@@ -146,11 +146,13 @@ class Wall_Follower:
             ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             x_accel = self.cns.imu_states['linear_acceleration']['x'][-1]
             y_accel = self.cns.imu_states['linear_acceleration']['y'][-1]
-            imu_heading = corner_imu_pid.state.data
+            imu_heading = self.corner_imu_pid.state.data
 
             #print all useful info
-            rospy.loginfo("state:\t%f", self.state)
-            rospy.loginfo("stage:\t%f", self.stage)
+            # rospy.loginfo("state:\t%f", self.state)
+            # rospy.loginfo("stage:\t%f", self.stage)
+            print self.state
+            print self.stage
             rospy.loginfo("ir_bottom:\t%f",ir_bottom)
             rospy.loginfo("ir_bottom_diff:\t%f", ir_bottom_diff)
             rospy.loginfo("ir_bottom_error:\t%f",ir_bottom_error)
@@ -277,7 +279,6 @@ class Wall_Follower:
                     self.stage += 1
     		#enter wall follow
                 elif ir_bottom_error < 100 and ir_top > self.top_c_max and ir_bottom_diff < 30:
-                    self.corner_imu_pid.doorways_seen += 1
                     self.bottom_ir_pid.ignore = False
                     self.wall_imu_pid.ignore = True
                     self.state = 'wall_follow'
