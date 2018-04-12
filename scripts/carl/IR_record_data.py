@@ -2,7 +2,6 @@
 
 import rospy
 from time import sleep
-from drivers import pololu
 import csv
 import math
 import numpy as np
