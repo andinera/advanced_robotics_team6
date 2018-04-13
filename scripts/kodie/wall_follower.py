@@ -275,6 +275,9 @@ class Wall_Follower:
                     self.bottom_ir_pid.ignore = True
                     self.wall_imu_pid.ignore = True
                     self.corner_imu_pid.ignore = False
+                    imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+                    self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+                    self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
                     self.state = 'corner'
                     self.stage += 1
     		#enter wall follow
@@ -292,6 +295,9 @@ class Wall_Follower:
                     self.bottom_ir_pid.ignore = True
                     self.wall_imu_pid.ignore = True
                     self.corner_imu_pid.ignore = False
+                    imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+                    self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+                    self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
                     self.state = 'corner'
                     self.stage += 1
     		              #enter wall follow
