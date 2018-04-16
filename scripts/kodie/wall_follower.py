@@ -6,8 +6,9 @@ import math
 import time
 from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
-
+from sklearn import linear_model
 NUM_STATES_STORED = 10
+NUM_RECORDED_STATES = 1500
 MOTOR_CENTER = 6000
 STEERING_CENTER = 5800
 
@@ -44,7 +45,6 @@ class Wall_Follower:
 
         self.acceleration_min = 0.001
         self.doorways_seen_threshold = 0
-
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -101,12 +101,11 @@ class Wall_Follower:
 
         self.previous_state = self.state
         self.previous_stage = self.stage
-
+        self.do_regression = False
 
     def execute(self):
         #set speeds for different states
         while not rospy.is_shutdown():
-
 
             #set speeds for different states
             if self.previous_state != self.state:
@@ -136,6 +135,14 @@ class Wall_Follower:
             while len(self.corner_imu_pid.reported_states) < 4 or len(self.bottom_ir_pid.reported_states) < 4:
                 rospy.sleep(.1)
                 self.publish_states()
+            #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
+            if len(self.cns.ir_top_states) == NUM_RECORDED_STATES:
+                x_range = list(range(1, NUM_RECORDED_STATES))
+                self.regression = linear_model.LinearRegression()
+                self.regression.fit(x_range,self.cns.ir_top_states)
+                self.regression.predict(self.predicted_wall_distance)[NUM_RECORDED_STATES]
+                self.regression_score = regression.score()
+                self.do_regression = True
             #create top and bottom ir variables for simplisity
             self.ir_top = self.top_ir_pid.state.data
             self.ir_bottom = self.bottom_ir_pid.state.data
@@ -168,7 +175,10 @@ class Wall_Follower:
             rospy.loginfo("corner_imu_error:\t%f", self.imu_corner_error)
             rospy.loginfo("x_acceleration:\t%f", self.x_accel)
             rospy.loginfo("y_acceleration:\t%f",self.y_accel)
-
+            if do_regression:
+                rospy.loginfo("Regression Coef:\t%f", regression.coef_)
+                rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
+                rospy.loginfo("Regression Score:\t%f",self.regression_score)
             if self.write_data:
                 self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom, self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff, self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel])
 
@@ -282,6 +292,7 @@ class Wall_Follower:
             else:
                 return False
         elif stage > 1:
+            #could be something else
             return False
         else:
             return False
