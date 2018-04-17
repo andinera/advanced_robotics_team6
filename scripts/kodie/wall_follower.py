@@ -7,6 +7,7 @@ import time
 from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
 from sklearn import linear_model
+import numpy as np
 NUM_STATES_STORED = 10
 NUM_RECORDED_STATES = 1500
 MOTOR_CENTER = 6000
@@ -139,10 +140,25 @@ class Wall_Follower:
                 rospy.sleep(.1)
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.ir_top_states) == NUM_RECORDED_STATES:
-                x_range = list(range(1, NUM_RECORDED_STATES))
+            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-2:
+                print len(self.cns.top_ir_states)
+                x_range = np.zeros((1499,1))
+                top_ir_states = np.zeros((1499,2))
+                x_range = np.array(list(range(0, NUM_RECORDED_STATES-1)))
+                print len(self.cns.top_ir_states)
+                top_ir_states = np.array(self.cns.top_ir_states[0:1499])
+               # top_ir_states =np.array([ np.array(self.cns.top_ir_states[0:1499]),x_range])
+                print "created top ir staes"
+                x_range.reshape(1499,1)
+                top_ir_states.reshape(1499,1)
+               # np.transpose(x_range)
+                #np.transpose(top_ir_states)
+                print x_range.shape
+                print top_ir_states.shape
+                print x_range
+                print top_ir_states
                 self.regression = linear_model.LinearRegression()
-                self.regression.fit(x_range, self.cns.ir_top_states)
+                self.regression.fit(x_range, top_ir_states)
                 self.regression.predict(self.predicted_wall_distance)[NUM_RECORDED_STATES]
                 self.regression_score = regression.score()
                 self.do_regression = True
@@ -178,7 +194,7 @@ class Wall_Follower:
             rospy.loginfo("corner_imu_error:\t%f", self.imu_corner_error)
             rospy.loginfo("x_acceleration:\t%f", self.x_accel)
             rospy.loginfo("y_acceleration:\t%f",self.y_accel)
-            if do_regression:
+            if self.do_regression:
                 rospy.loginfo("Regression Coef:\t%f", regression.coef_)
                 rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
                 rospy.loginfo("Regression Score:\t%f",self.regression_score)
@@ -187,31 +203,31 @@ class Wall_Follower:
 
             if self.state == 'wall_follow':
                 #check corner near state
-                if cornernear_logic(self):
+                if self.cornernear_logic():
                     print "CORNER NEAR"
-                    cornernear_config(self)
+                    self.cornernear_config()
                 #check for corner detection
-                elif corner_logic(self):
+                elif self.corner_logic():
                     print "CORNER DETECTED"
                     print "Set Imu Setpoint to + 90"
-                    corner_config(self)
+                    self.corner_config()
                 # doorway detected
-                elif doorway_logic(self):
+                elif self.doorway_logic():
                     print "DOORWAY DETECTED"
-                    doorway_config(self)
-                elif startdrift_logic(self):
-                    start_drift_config(self)
+                    self.doorway_config()
+                elif self.startdrift_logic():
+                    self.start_drift_config()
                 else:
                     pass
 
             elif self.state == 'doorway':
                 #corner detected in doorway state
-                if corner_logic(self):
-                    corner_config(self)
+                if self.corner_logic():
+                    self.corner_config()
                     print "exit to corner because bottom corner threshold"
                 #exit conditions for doorway state
-            elif wall_logic(self):
-                    wall_config(self)
+            elif self.wall_logic():
+                    self.wall_config()
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
                 rospy.loginfo("CORNERING:Corner state-\t{}, Corner error-\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(imu_corner_error)))
@@ -220,32 +236,32 @@ class Wall_Follower:
                     #continues to control off of imu until it meets wall follow conditions
                     #enter wall follow
                     if ir_bottom_error < 150 and ir_bottom_diff < 10:
-                        wall_config(self)
+                       self. wall_config()
             elif self.state == 'corner_near':
                 #enter corner from corner near
-                if corner_logic(self):
-                    corner_config(self)
+                if self.corner_logic():
+                    self.corner_config()
     		    #enter wall follow from corner near
-                elif wall_logic(self):
-                    wall_config(self)
+                elif self.wall_logic():
+                    self.wall_config()
                     print "Exited corner near with standard method"
                 #car has stoped to enter corner near stopped state
-                elif math.fabs(x_accel) < self.acceleration_min:
+                elif math.fabs(self.x_accel) < self.acceleration_min:
         		    self.state = 'corner_near_stopped'
 
             elif self.state == 'corner_near_stopped':
-                if corner_logic(self):
-                    corner_config(self)
+                if self.corner_logic():
+                    self.corner_config()
     		    #enter wall follow
-                elif wall_logic(self):
-                    wall_config(self)
+                elif self.wall_logic():
+                    self.wall_config()
                     print "Exited to wall follow"
             elif self.state == 'drift':
-                if end_drift_logic(self):
-                    end_drift_config(self)
+                if self.end_drift_logic():
+                    self.end_drift_config()
             elif self.state == 'end_drift':
-                if wall_logic(self):
-                    wall_config(self)
+                if self.wall_logic():
+                    self.wall_config()
             else:
                 print "Entered default case in state machine."
 
@@ -276,27 +292,27 @@ class Wall_Follower:
         self.steering_srv(STEERING_CENTER + steering_cmd)
 
     def wall_logic(self):
-        if ir_bottom_error < 100 and ir_top > self.top_d_min and ir_bottom_diff < 30:
+        if self.ir_bottom_error < 100 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
             return True
         else:
             return False
 
     def corner_logic(self):
-        if stage == 0 && self.do_regression:
+        if self.stage == 0 and self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_0 and self.ir_top < self.top_c_max_0 and \
             self.predicted_wall_distance < self.top_c_max_0 and self.ir_top_diff < 100 and \
             self.ir_bottom_diff > 1000:
                 return Trueself.predicted_wall_distance < self.top_c_max_0
             else:
                 return False
-        elif stage == 1 && self.do_regression:
+        elif self.stage == 1 and self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_1 and self.ir_top < self.top_c_max_1 and \
-            self.predicted_wall_distance < self.top_c_max_0 andself.ir_top_diff < 100 and \
+            self.predicted_wall_distance < self.top_c_max_0 and self.ir_top_diff < 100 and \
             self.ir_bottom_diff > 1000:
                 return True
             else:
                 return False
-        elif stage > 1:
+        elif self.stage > 1:
             #could be something else
             return False
         else:
