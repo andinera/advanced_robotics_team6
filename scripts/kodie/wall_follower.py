@@ -338,7 +338,7 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
         self.corner_imu_pid.ignore = False
-        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+        imu_setpoint = self.imu_wall_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.state = 'corner'
@@ -357,7 +357,7 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
         self.corner_imu_pid.ignore = False
-        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+        imu_setpoint = self.imu_wall_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.state = 'drift'
