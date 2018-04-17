@@ -106,6 +106,7 @@ class Wall_Follower:
         self.previous_state = self.state
         self.previous_stage = self.stage
         self.do_regression = False
+        self.predicted_wall_distance = None
 
     def execute(self):
         #set speeds for different states
@@ -140,27 +141,18 @@ class Wall_Follower:
                 rospy.sleep(.1)
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-2:
-                print len(self.cns.top_ir_states)
-                x_range = np.zeros((1499,1))
+            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-2:  
+                x_range = [x for x in range(1499)]
+                x_range = np.array(x_range)
+                x_range = x_range.reshape(-1, 1)
                 top_ir_states = np.zeros((1499,2))
-                x_range = np.array(list(range(0, NUM_RECORDED_STATES-1)))
-                print len(self.cns.top_ir_states)
                 top_ir_states = np.array(self.cns.top_ir_states[0:1499])
-               # top_ir_states =np.array([ np.array(self.cns.top_ir_states[0:1499]),x_range])
-                print "created top ir staes"
-                x_range.reshape(1499,1)
-                top_ir_states.reshape(1499,1)
-               # np.transpose(x_range)
-                #np.transpose(top_ir_states)
-                print x_range.shape
-                print top_ir_states.shape
-                print x_range
-                print top_ir_states
+                x_range.reshape(-1,1)
+                top_ir_states.reshape(-1,1)
                 self.regression = linear_model.LinearRegression()
                 self.regression.fit(x_range, top_ir_states)
-                self.regression.predict(self.predicted_wall_distance)[NUM_RECORDED_STATES]
-                self.regression_score = regression.score()
+                self.predicted_wall_distance =  self.regression.predict([NUM_RECORDED_STATES])
+                #self.regression_score = self.regression.score()
                 self.do_regression = True
             #create top and bottom ir variables for simplisity
             self.ir_top = self.top_ir_pid.state.data
@@ -195,9 +187,9 @@ class Wall_Follower:
             rospy.loginfo("x_acceleration:\t%f", self.x_accel)
             rospy.loginfo("y_acceleration:\t%f",self.y_accel)
             if self.do_regression:
-                rospy.loginfo("Regression Coef:\t%f", regression.coef_)
+                rospy.loginfo("Regression Coef:\t%f", self.regression.coef_)
                 rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
-                rospy.loginfo("Regression Score:\t%f",self.regression_score)
+                #rospy.loginfo("Regression Score:\t%f",self.regression_score)
             if self.write_data:
                 self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom, self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff, self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel])
 
