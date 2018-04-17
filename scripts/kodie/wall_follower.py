@@ -20,10 +20,13 @@ class Wall_Follower:
         self.top_c_min_0 = 75
         self.top_c_max_0 = 250
         self.bottom_c_min_0 = 700
+        #doorway offset values
+        self.doorway_offset = 100
         #stage 1 corner values
         self.top_c_min_1 = 75
-        self.top_c_max_1 = 250
+        self.top_c_max_1 = self.top_c_max_0 - self.doorway_offset
         self.bottom_c_min_1 = 700
+
         #doorway values
         self.top_d_min = 250
         self.bottom_d_min = 90
@@ -139,7 +142,7 @@ class Wall_Follower:
             if len(self.cns.ir_top_states) == NUM_RECORDED_STATES:
                 x_range = list(range(1, NUM_RECORDED_STATES))
                 self.regression = linear_model.LinearRegression()
-                self.regression.fit(x_range,self.cns.ir_top_states)
+                self.regression.fit(x_range, self.cns.ir_top_states)
                 self.regression.predict(self.predicted_wall_distance)[NUM_RECORDED_STATES]
                 self.regression_score = regression.score()
                 self.do_regression = True
@@ -279,15 +282,17 @@ class Wall_Follower:
             return False
 
     def corner_logic(self):
-        if stage == 0:
+        if stage == 0 && self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_0 and self.ir_top < self.top_c_max_0 and \
-            self.ir_top_diff < 100 and self.ir_bottom_diff > 1000:
-                return True
+            self.predicted_wall_distance < self.top_c_max_0 and self.ir_top_diff < 100 and \
+            self.ir_bottom_diff > 1000:
+                return Trueself.predicted_wall_distance < self.top_c_max_0
             else:
                 return False
-        elif stage == 1:
+        elif stage == 1 && self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_1 and self.ir_top < self.top_c_max_1 and \
-            self.ir_top_diff < 100 and self.ir_bottom_diff > 1000:
+            self.predicted_wall_distance < self.top_c_max_0 andself.ir_top_diff < 100 and \
+            self.ir_bottom_diff > 1000:
                 return True
             else:
                 return False
