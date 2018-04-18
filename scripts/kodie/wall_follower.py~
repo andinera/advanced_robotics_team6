@@ -79,7 +79,7 @@ class Wall_Follower:
         # used for recording data
         if self.write_data:
             print "OPENING CSV"
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_wall{}.csv".format(time.time())
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_{}.csv".format(time.time())
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -295,10 +295,8 @@ class Wall_Follower:
             i += 1
             steering_cmd += self.corner_imu_pid.control_effort
         steering_cmd /= i
-        if self.take_data :
-            self.steering_srv(STEERING_CENTER)
-        else:
-            self.steering_srv(STEERING_CENTER + steering_cmd)
+        print steering_cmd
+        self.steering_srv(STEERING_CENTER + steering_cmd)
 
     def wall_logic(self):
         if self.ir_bottom_error < 100 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
