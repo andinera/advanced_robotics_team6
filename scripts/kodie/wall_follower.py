@@ -17,7 +17,7 @@ class Wall_Follower:
 
     def __init__(self,event):
         self.drift = False
-        self.take_data = False
+        self.take_data = True
         #stage 0 corner values
         self.top_c_min_0 = 75
         self.top_c_max_0 = 250
