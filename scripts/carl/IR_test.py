@@ -8,12 +8,12 @@ from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
 from advanced_robotics_team6.drivers import pololu_driver as pololu
 
-write_data = False
+write_data = True
 
 rospy.init_node('ir_test')
 
 if write_data:
-    csv_out = open("IR_out_041718.csv", 'a')
+    csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_test_041718.csv", 'a')
     writer = csv.writer(csv_out)
 
 with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
@@ -44,7 +44,7 @@ with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
 
         if write_data:
             # first number in list is distance [cm] to target
-            writer.writerow([50, data_top, data_bottom])
+            writer.writerow([800, data_top, data_bottom])
 
         # print i,"\t",d,"\t",d1,"\t",d2,"\t",d3,"\t",d4
         print "{}\t{}\t{}".format(i, data_bottom, data_top)
