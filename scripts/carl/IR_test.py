@@ -12,7 +12,7 @@ write_data = False
 rospy.init_node('ir_test')
 
 if write_data:
-    csv_out = open("IR_out_031718.csv", 'a')
+    csv_out = open("IR_out_041718.csv", 'a')
     writer = csv.writer(csv_out)
 
 with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
@@ -20,7 +20,7 @@ with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
     rate = rospy.Rate(10)
 
     i = 0
-    while not rospy.is_shutdown():
+    while not rospy.is_shutdown() and i < 50:
         data_top = ir_top.get_position()
         data_bottom = ir_bottom.get_position()
         pos = data_bottom
@@ -43,7 +43,7 @@ with pololu.Controller(2) as ir_bottom, pololu.Controller(3) as ir_top:
 
         if write_data:
             # first number in list is distance [cm] to target
-            writer.writerow([350, data_top, data_bottom])
+            writer.writerow([50, data_top, data_bottom])
 
         # print i,"\t",d,"\t",d1,"\t",d2,"\t",d3,"\t",d4
         print "{}\t{}\t{}".format(i, data_bottom, data_top)

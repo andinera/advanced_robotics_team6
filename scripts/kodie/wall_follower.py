@@ -9,7 +9,7 @@ from advanced_robotics_team6.srv import PololuCmd
 from sklearn import linear_model
 import numpy as np
 NUM_STATES_STORED = 10
-NUM_RECORDED_STATES = 1500
+NUM_RECORDED_STATES = 500
 MOTOR_CENTER = 6000
 STEERING_CENTER = 5800
 
@@ -17,6 +17,7 @@ class Wall_Follower:
 
     def __init__(self,event):
         self.drift = False
+        self.take_data = False
         #stage 0 corner values
         self.top_c_min_0 = 75
         self.top_c_max_0 = 250
@@ -107,7 +108,9 @@ class Wall_Follower:
         self.previous_stage = self.stage
         self.do_regression = False
         self.predicted_wall_distance = None
-
+        if self.take_data:
+            self.state = "data"
+            self.data_timer = time.time()
     def execute(self):
         #set speeds for different states
         while not rospy.is_shutdown():
@@ -141,12 +144,12 @@ class Wall_Follower:
                 rospy.sleep(.1)
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-2:  
-                x_range = [x for x in range(1499)]
+            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-1:
+                x_range = [x for x in range(NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
-                top_ir_states = np.zeros((1499,2))
-                top_ir_states = np.array(self.cns.top_ir_states[0:1499])
+                top_ir_states = np.zeros((NUM_RECORDED_STATES,2))
+                top_ir_states = np.array(self.cns.top_ir_states[0:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 self.regression = linear_model.LinearRegression()
@@ -190,9 +193,19 @@ class Wall_Follower:
                 rospy.loginfo("Regression Coef:\t%f", self.regression.coef_)
                 rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
                 #rospy.loginfo("Regression Score:\t%f",self.regression_score)
-            if self.write_data:
-                self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom, self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff, self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel])
-
+            if self.write_data and self.do_regression:
+                self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom,\
+                 self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
+                  self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
+                   self.regression.coef_, self.predictied_wall_distance])
+            elif self.write_data:
+                self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom,\
+                 self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
+                  self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel])
+            if self.state == 'data':
+                if time.time() - self.data_timer > 3:
+                    self.motor_srv(MOTOR_CENTER)
+                    self.write_data = False
             if self.state == 'wall_follow':
                 #check corner near state
                 if self.cornernear_logic():
