@@ -128,11 +128,11 @@ class Controller:
         pos = int(pos, base=2)
 
         if pos != 0:
-            pos = 1/float(pos)
+            #pos = 1/float(pos)
            # if pos <= 0.01:
            #     pos = -2.176826*(10**9)*(pos**3)+3.927078*(10**7)*(pos**2)-3.84248*(10**3)*pos+16.0093
            # else:
-            pos = 200000*pos-250
+            #pos = 200000*pos-250
 
         return pos
 
