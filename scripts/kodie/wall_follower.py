@@ -104,7 +104,8 @@ class Wall_Follower:
         if self.write_data:
             print "OPENING CSV"
             #need to check
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/data_4_22/ir_course_data_wall{}.csv".format(time.time().second)
+            current_time = int(time.time())
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/data_4_22/ir_course_data_wall{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -175,10 +176,11 @@ class Wall_Follower:
                 top_ir_states = np.array(self.cns.top_ir_states[0:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
+                num_states_recorded = np.array(NUM_RECORDED_STATES).reshape(-1,1)
                 self.regression = linear_model.LinearRegression()
                 self.regression.fit(x_range, top_ir_states)
-                self.predicted_wall_distance =  self.regression.predict([NUM_RECORDED_STATES])
-                self.regression_coef = self.regression.coef_
+                self.predicted_wall_distance =  self.regression.predict(num_states_recorded)[0]
+                self.regression_coef = self.regression.coef_[0]
                 self.regression_score = self.regression.score(x_range, top_ir_states)
                 self.do_regression = True
             #create top and bottom ir variables for simplisity
@@ -197,8 +199,8 @@ class Wall_Follower:
 
             self.ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             #accelerameter states for simplicity
-            self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1][0] #need to check this
-            self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1][0] # need to check this too
+            self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
+            self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
             self.imu_heading = self.corner_imu_pid.state.data
 
             #print all useful information
@@ -221,7 +223,7 @@ class Wall_Follower:
                 self.writer.writerow([time.time(),self.state,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
                   self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
-                   self.regression_coef, self.regression_score, self.predicted_wall_distance])
+                   self.regression_coef, self.regression_score, self.predicted_wall_distance)
             if self.state == 'data':
                 if time.time() - self.data_timer > 3:
                     self.motor_srv(MOTOR_CENTER)
