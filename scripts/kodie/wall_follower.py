@@ -9,7 +9,7 @@ from advanced_robotics_team6.srv import PololuCmd
 from sklearn import linear_model
 import numpy as np
 NUM_STATES_STORED = 10
-NUM_RECORDED_STATES = 500
+NUM_RECORDED_STATES = 100
 MOTOR_CENTER = 6000
 STEERING_CENTER = 5800
 
@@ -18,6 +18,7 @@ class Wall_Follower:
     def __init__(self,event):
         self.drift = False
         self.take_data = True
+        self.write_data = True
         #stage 0 corner values
         self.top_c_min_0 = 75
         self.top_c_max_0 = 250
@@ -74,7 +75,7 @@ class Wall_Follower:
         self.steering_srv(STEERING_CENTER)
         rospy.sleep(1)
 
-        self.write_data = True
+
 
         #initialze data for wall_logic
         self.regression = linear_model.LinearRegression()
@@ -103,8 +104,7 @@ class Wall_Follower:
         if self.write_data:
             print "OPENING CSV"
             #need to check
-	    current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_wall2{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/data_4_22/ir_course_data_wall{}.csv".format(time.time().second)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -175,10 +175,9 @@ class Wall_Follower:
                 top_ir_states = np.array(self.cns.top_ir_states[0:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
-		num_recorded_states = np.array(NUM_RECORDED_STATES).reshape(-1,1)
                 self.regression = linear_model.LinearRegression()
                 self.regression.fit(x_range, top_ir_states)
-                self.predicted_wall_distance =  self.regression.predict(num_recorded_states)
+                self.predicted_wall_distance =  self.regression.predict([NUM_RECORDED_STATES])
                 self.regression_coef = self.regression.coef_
                 self.regression_score = self.regression.score(x_range, top_ir_states)
                 self.do_regression = True
@@ -198,10 +197,8 @@ class Wall_Follower:
 
             self.ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             #accelerameter states for simplicity
-            self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
-	    print self.x_accel
-	    
-            self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
+            self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1][0] #need to check this
+            self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1][0] # need to check this too
             self.imu_heading = self.corner_imu_pid.state.data
 
             #print all useful information
@@ -226,7 +223,7 @@ class Wall_Follower:
                   self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
                    self.regression_coef, self.regression_score, self.predicted_wall_distance])
             if self.state == 'data':
-                if time.time() - self.data_timer > 10:
+                if time.time() - self.data_timer > 3:
                     self.motor_srv(MOTOR_CENTER)
                     self.write_data = False
             elif self.state == 'wall_follow':
