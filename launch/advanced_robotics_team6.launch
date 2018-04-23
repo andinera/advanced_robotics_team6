@@ -14,7 +14,7 @@
     <group unless="$(arg offline)">
         <!-- Node for sending IMU data -->
         <node pkg="phidgets_imu" type="phidgets_imu_node" name="phidgets_imu_node" output="screen">
-            <!-- period=4 ==> 250 Hz -->
+            <!-- period=4 ==> 150 Hz -->
             <param name="period" value="4"/>
         </node>
         <!-- Node for sending IR data -->

@@ -112,7 +112,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/data_4_22/ir_course_data_doorway1{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/test{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -238,7 +238,9 @@ class Wall_Follower:
                 self.writer.writerow([time.time(),0,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
                   self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
-                   self.regression_coef, self.regression_score, self.predicted_wall_distance])
+                   self.regression_coef, self.regression_score, self.predicted_wall_distance,\
+                   self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
+                   self.cns.imu_states['orientation']['z'][-1]])
             #print "Step 4"
             #print time.time()
 
