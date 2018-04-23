@@ -7,7 +7,7 @@ from advanced_robotics_team6.srv import PololuCmd, PololuCmdResponse
 from advanced_robotics_team6.drivers import pololu_driver as pololu
 
 
-FREQUENCY = 500
+FREQUENCY = 150
 
 def motor_handler(req):
     global motor_cmd

@@ -10,7 +10,7 @@ from tf.transformations import euler_from_quaternion
 from advanced_robotics_team6.srv import PololuCmd
 
 
-NUM_READINGS = 1500
+NUM_READINGS = 151
 
 class CNS:
 
