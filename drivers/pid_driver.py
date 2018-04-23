@@ -125,14 +125,14 @@ class PID:
         if state:
             self.state.data = state
         else:
-            stts = states[-1]
             #stts = states[-4:-1]
-            y = 0
-            x = 0
-            for state in stts:
-                y += math.sin(state)
-                x += math.cos(state)
-            self.state.data = math.atan2(y, x)
+            #y = 0
+            #x = 0
+            #for state in stts:
+               #y += math.sin(state)
+               #x += math.cos(state)
+            #self.state.data = math.atan2(y, x)
+	    self.state.data = states[-1]
             if self.state.data < self.setpoint.data - math.pi:
                 self.state.data += 2*math.pi
             elif self.state.data > self.setpoint.data + math.pi:

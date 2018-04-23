@@ -44,15 +44,15 @@ class Wall_Follower:
         self.top_drift = 200
         self.side_acceration_limit = 0.5
         #state speeds
-        self.motor_speed = 6400
-        self.wall_speed = 6350
+        self.motor_speed = 6300
+        self.wall_speed = 6300
         self.door_speed = 6250
         self.corner_speed = 6200
         self.near_corner_speed = 4500
         self.near_corner_stopped_speed = 6200
-        self.finishing_speed = 6900
+        self.finishing_speed = 6200
         #drift speeds
-        self.drift_wall_speed = 6900
+        self.drift_wall_speed = 6200
         self.drift_speed = 4005
 
         self.acceleration_min = 1
@@ -67,7 +67,8 @@ class Wall_Follower:
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
-        self.bottom_ir_pid.ir_setpoint(setpoint=170)
+        self.bottom_ir_pid.ir_setpoint(setpoint=190)
+	#self.bottom_ir_pid.ir_setpoint()
         self.top_ir_pid.ir_setpoint(setpoint=140)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
@@ -116,10 +117,10 @@ class Wall_Follower:
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
 
-        self.bottom_ir_pid.ir_setpoint(setpoint=125)
-        self.top_ir_pid.ir_setpoint(setpoint=125)
-        self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
-        self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
+        #self.bottom_ir_pid.ir_setpoint(setpoint=75)
+        #self.top_ir_pid.ir_setpoint(setpoint=75)
+        #self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
+        #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
         self.motor_srv(6300)
@@ -145,27 +146,26 @@ class Wall_Follower:
     def execute(self):
         #set speeds for different states
         while not rospy.is_shutdown():
-	    print "Step 1"
-	    print time.time()
 	    #time.sleep(.02)
             #set speeds for different states
             if self.previous_state != self.state:
                 print "Changing Speed"
+		self.previous_state = self.state
                 if self.drift:
                     if self.state == 'drift':
                         self.motor_srv(self.drift_speed)
                     else:
                         self.motor_srv(self.drift_wall_speed)
                 else:
-                    if self.stage == 2:
+                    if False and self.stage == 2:
                         self.motor_srv(self.finishing_speed)
                     elif self.state == 'wall_follow':
                         self.motor_srv(self.motor_speed)
                     elif self.state == 'corner':
                         self.motor_srv(self.corner_speed)
-                    elif self.state == 'near_corner':
+                    elif self.state == 'corner_near':
                         self.motor_srv(self.near_corner_speed)
-                    elif self.state == 'near_corner_stopped':
+                    elif self.state == 'corner_near_stopped':
                         self.motor_srv(self.near_corner_stopped_speed)
                     else:
                         self.motor_srv(self.door_speed)
@@ -214,21 +214,22 @@ class Wall_Follower:
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
             self.imu_heading = self.corner_imu_pid.state.data
             print self.imu_heading
-            print self.ir_top
-            print self.ir_bottom
+            #print self.ir_top
+            #print self.ir_bottom
+	    #print self.ir_bottom_error
             #print all useful information
-            #print self.state
+            print self.state
             #print self.stage
 	        #print time.time()
-            #rospy.loginfo("ir_bottom:\t%f",self.ir_bottom)
-            #rospy.loginfo("ir_bottom_diff:\t%f", self.ir_bottom_diff)
-            #rospy.loginfo("ir_bottom_error:\t%f",self.ir_bottom_error)
-            #rospy.loginfo("ir_top:\t%f",self.ir_top)
-            #rospy.loginfo("ir_top_diff:\t%f", self.ir_top_diff)
-            #rospy.loginfo("corner_imu:\t%f", self.imu_heading)
-            #rospy.loginfo("corner_imu_error:\t%f", self.imu_corner_error)
-            #rospy.loginfo("x_acceleration:\t%f", self.x_accel)
-            #rospy.loginfo("y_acceleration:\t%f",self.y_accel)
+            rospy.loginfo("ir_bottom:\t%f",self.ir_bottom)
+            rospy.loginfo("ir_bottom_diff:\t%f", self.ir_bottom_diff)
+            rospy.loginfo("ir_bottom_error:\t%f",self.ir_bottom_error)
+            rospy.loginfo("ir_top:\t%f",self.ir_top)
+            rospy.loginfo("ir_top_diff:\t%f", self.ir_top_diff)
+            rospy.loginfo("corner_imu:\t%f", self.imu_heading)
+            rospy.loginfo("corner_imu_error:\t%f", self.imu_corner_error)
+            rospy.loginfo("x_acceleration:\t%f", self.x_accel)
+            rospy.loginfo("y_acceleration:\t%f",self.y_accel)
             #if self.do_regression:
                 #rospy.loginfo("Regression Coef:\t%f", self.regression.coef_)
                 #rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
@@ -245,7 +246,7 @@ class Wall_Follower:
                 print "data"
             elif self.state == 'wall_follow':
                 #check drift
-                if self.start_drift_config():
+                if self.startdrift_logic():
                     print "DRIFT"
                     self.start_drift_config()
                 #check corner near state
@@ -272,12 +273,12 @@ class Wall_Follower:
                     #self.corner_config()
                     #print "exit to corner because bottom corner threshold"
                 #exit conditions for doorway state
-                elif self.wall_logic():
+                if self.wall_logic():
                     self.wall_config()
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
-                rospy.loginfo("CORNERING:Corner state-\t{}, Corner error-\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(imu_corner_error)))
-                if imu_corner_error < math.radians(20):
+                rospy.loginfo("CORNERING:Corner state-\t{}, Corner error-\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(self.corner_imu_pid.state.data - self.corner_imu_pid.setpoint.data)))
+                if self.imu_corner_error < math.radians(20):
                     print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
                     #continues to control off of imu until it meets wall follow conditions
                     #enter wall follow
@@ -292,8 +293,8 @@ class Wall_Follower:
                     self.wall_config()
                     print "Exited corner near with standard method"
                 #car has stoped to enter corner near stopped state
-            elif math.fabs(self.y_accel) < self.acceleration_min:
-        		    self.state = 'corner_near_stopped'
+            	#elif math.fabs(self.y_accel) < self.acceleration_min:
+        	   # self.state = 'corner_near_stopped'
 
             elif self.state == 'corner_near_stopped':
                 if self.corner_logic():
@@ -344,7 +345,8 @@ class Wall_Follower:
             self.steering_srv(STEERING_CENTER)
         else:
             self.steering_srv(STEERING_CENTER + steering_cmd)
-
+	print self.bottom_ir_pid.control_effort
+	print self.wall_imu_pid.control_effort
     def wall_logic(self):
         if self.ir_bottom_error < 100 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
             return True
@@ -373,7 +375,7 @@ class Wall_Follower:
             return False
 
     def doorway_logic(self):
-        if self.ir_top > self.top_d_min and (self.ir_bottom_error > self.bottom_d_min and \
+        if False and self.ir_top > self.top_d_min and (self.ir_bottom_error > self.bottom_d_min and \
             self.ir_bottom_error < self.bottom_d_max and self.ir_bottom_diff > 50):
             return True
         else:
@@ -404,31 +406,35 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = False
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
+	self.previous_state = self.state
         self.state = 'wall_follow'
     def corner_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
         self.corner_imu_pid.ignore = False
-        imu_setpoint = self.imu_wall_pid.setpoint.data - math.radians(90)
+        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+	self.previous_state = self.state
         self.state = 'corner'
         self.stage += 1
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
+	self.previous_state = self.state
         self.state = 'doorway'
     def cornernear_config(self):
-        self.bottom_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = False
+        self.bottom_ir_pid.ignore = False
+        self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
+	self.previous_state = self.state
         self.state = 'corner_near'
     def start_drift_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
         self.corner_imu_pid.ignore = False
-        imu_setpoint = self.imu_wall_pid.setpoint.data - math.radians(90)
+        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.state = 'drift'
