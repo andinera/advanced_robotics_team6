@@ -17,23 +17,29 @@ class Wall_Follower:
 
     def __init__(self,event):
         self.drift = False
-        self.take_data = True
+        self.take_data = False
         self.write_data = True
         #stage 0 corner values
         self.top_c_min_0 = 75
         self.top_c_max_0 = 250
+        self.top_at_corner_1 = 265
+        self.top_corner_near_1 = 320
+        self.top_corner_drift_1 = 320
         self.bottom_c_min_0 = 700
         #doorway offset values
         self.doorway_offset = 100
         #stage 1 corner values
         self.top_c_min_1 = 75
-        self.top_c_max_1 = self.top_c_max_0 - self.doorway_offset
+        self.top_c_max_1 = 350
+        self.top_at_corner_1 = 265
+        self.top_corner_near_1 = 320
+        self.top_corner_drift_1 = 320
         self.bottom_c_min_1 = 700
 
         #doorway values
-        self.top_d_min = 250
-        self.bottom_d_min = 90
-        self.bottom_d_max = 700
+        self.top_d_min = 300
+        self.bottom_d_min = 80
+        self.bottom_d_max = 600
         #drift values
         self.top_drift = 200
         self.side_acceration_limit = 0.5
@@ -120,7 +126,7 @@ class Wall_Follower:
         print "MOTOR SPEED: ", self.motor_speed
 
         self.state = "wall_follow"
-        self.stage = 0 #to know if on first, second or third straightaway
+        self.stage = 1 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
@@ -207,10 +213,13 @@ class Wall_Follower:
             self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
             self.imu_heading = self.corner_imu_pid.state.data
+            print self.imu_heading
+            print self.ir_top
+            print self.ir_bottom
             #print all useful information
             #print self.state
             #print self.stage
-	    #print time.time()
+	        #print time.time()
             #rospy.loginfo("ir_bottom:\t%f",self.ir_bottom)
             #rospy.loginfo("ir_bottom_diff:\t%f", self.ir_bottom_diff)
             #rospy.loginfo("ir_bottom_error:\t%f",self.ir_bottom_error)
@@ -259,11 +268,11 @@ class Wall_Follower:
 
             elif self.state == 'doorway':
                 #corner detected in doorway state
-                if self.corner_logic():
-                    self.corner_config()
-                    print "exit to corner because bottom corner threshold"
+                #if self.corner_logic():
+                    #self.corner_config()
+                    #print "exit to corner because bottom corner threshold"
                 #exit conditions for doorway state
-            elif self.wall_logic():
+                elif self.wall_logic():
                     self.wall_config()
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
@@ -346,14 +355,14 @@ class Wall_Follower:
         if self.stage == 0 and self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_0 and self.ir_top < self.top_c_max_0 and \
             self.predicted_wall_distance < self.top_c_max_0 and self.ir_top_diff < 100 and \
-            self.ir_bottom_diff > 1000:
+            self.ir_bottom_error > 1000:
                 return Trueself.predicted_wall_distance < self.top_c_max_0
             else:
                 return False
         elif self.stage == 1 and self.do_regression:
             if self.ir_bottom_error > self.bottom_c_min_1 and self.ir_top < self.top_c_max_1 and \
             self.predicted_wall_distance < self.top_c_max_0 and self.ir_top_diff < 100 and \
-            self.ir_bottom_diff > 1000:
+            self.ir_bottom_error > 1000:
                 return True
             else:
                 return False
@@ -371,9 +380,10 @@ class Wall_Follower:
             return False
 
     def cornernear_logic(self):
-        if self.ir_bottom_error < 200 and self.ir_top < 300 and self.ir_top_difference < 0 \
+        if self.ir_bottom_error < 200 and self.ir_top < self.top_corner_near_1 and \
+        self.predicted_wall_distance < self.top_corner_near_1 and self.regression_coef < 0 \
         and self.stage < 2 and self.imu_corner_error < math.pi/4 \
-        and self.ir_top_difference > -200 and self.drift == False:
+         and self.drift == False:
             return True
         else:
             return False

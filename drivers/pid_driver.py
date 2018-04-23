@@ -125,7 +125,8 @@ class PID:
         if state:
             self.state.data = state
         else:
-            stts = states[-4:-1]
+            stts = states[-1]
+            #stts = states[-4:-1]
             y = 0
             x = 0
             for state in stts:
