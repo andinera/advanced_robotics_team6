@@ -5,6 +5,7 @@ from multiprocessing import Manager
 
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
+from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 
 from advanced_robotics_team6.srv import PololuCmd
@@ -31,6 +32,7 @@ class CNS:
 
         # Initialize services for sending motor and steering commands
         rospy.wait_for_service('motor_cmd')
+
         rospy.wait_for_service('steering_cmd')
         self.motor_srv = rospy.ServiceProxy('motor_cmd', PololuCmd)
         self.steering_srv = rospy.ServiceProxy('steering_cmd', PololuCmd)
@@ -101,3 +103,4 @@ class CNS:
         if len(self.imu_states['linear_acceleration']['z']) >= NUM_READINGS:
             del self.imu_states['linear_acceleration']['z'][0]
         self.imu_states['linear_acceleration']['z'].append(data.linear_acceleration.x)
+
