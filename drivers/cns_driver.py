@@ -73,7 +73,7 @@ class CNS:
         z = data.orientation.z
         w = data.orientation.w
         angles = euler_from_quaternion([x, y, z, w])
-
+        print "angels:", angles
         if len(self.imu_states['orientation']['x']) >= NUM_READINGS:
             del self.imu_states['orientation']['x'][0]
         self.imu_states['orientation']['x'].append(angles[0])
@@ -103,4 +103,3 @@ class CNS:
         if len(self.imu_states['linear_acceleration']['z']) >= NUM_READINGS:
             del self.imu_states['linear_acceleration']['z'][0]
         self.imu_states['linear_acceleration']['z'].append(data.linear_acceleration.x)
-
