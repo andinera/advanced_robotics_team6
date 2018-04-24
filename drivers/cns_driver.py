@@ -7,6 +7,7 @@ from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
+from tf.transformations import quaternion_from_euler
 
 from advanced_robotics_team6.srv import PololuCmd
 
@@ -73,7 +74,8 @@ class CNS:
         z = data.orientation.z
         w = data.orientation.w
         angles = euler_from_quaternion([x, y, z, w])
-        print "angels:", angles
+        quat = quaternion_from_euler(angles)
+        print "quaternion:", quat
         if len(self.imu_states['orientation']['x']) >= NUM_READINGS:
             del self.imu_states['orientation']['x'][0]
         self.imu_states['orientation']['x'].append(angles[0])

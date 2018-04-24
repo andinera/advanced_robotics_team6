@@ -12,7 +12,10 @@ def imu_callback(data, pub):
     y = data.orientation.y
     z = data.orientation.z
     w = data.orientation.w
-
+	print "x: ",x
+    print "y: ",y
+    print "z: ",z
+    print "w: ",w
     odometry = Odometry()
     odometry.header = data.header
     odometry.pose.pose.orientation.x = x
