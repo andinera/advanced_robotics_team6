@@ -55,6 +55,7 @@ class Wall_Follower:
 
     def execute(self):
         while not rospy.is_shutdown():
+            print self.cns.top_ir_states
             while not rospy.is_shutdown() and len(self.cns.imu_states['orientation']['z']) < 9:
                 self.event.wait()
                 self.event.clear()

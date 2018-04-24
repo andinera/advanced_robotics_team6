@@ -1,8 +1,15 @@
 <launch>
 
+    <arg name="model_size" default="3" />
+    <arg name="stop_sign" default="false" />
+
     <include file="$(find libuvc_camera)/launch/uvccam.launch" />
 
     <node pkg="image_proc" type="image_proc" name="image_proc" ns="camera" output="screen" >
 	</node>
+
+    <node if="$(arg stop_sign)" pkg="advanced_robotics_team6" type="stop_sign_node.py" name="stop_sign_node" output="screen" >
+        <param name="model_size" value="$(arg model_size)"/>
+    </node>
 
 </launch>
