@@ -411,7 +411,7 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = False
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
-	    self.previous_state = self.state
+        self.previous_state = self.state
         self.state = 'wall_follow'
     def corner_config(self):
         self.bottom_ir_pid.ignore = True
@@ -420,20 +420,20 @@ class Wall_Follower:
         imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
-	    self.previous_state = self.state
+        self.previous_state = self.state
         self.state = 'corner'
         self.stage += 1
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
-	    self.previous_state = self.state
+        self.previous_state = self.state
         self.state = 'doorway'
     def cornernear_config(self):
         self.bottom_ir_pid.ignore = False
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
-	    self.previous_state = self.state
+        self.previous_state = self.state
         self.state = 'corner_near'
     def start_drift_config(self):
         self.bottom_ir_pid.ignore = True
@@ -442,11 +442,13 @@ class Wall_Follower:
         imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+        self.previous_state = self.state
         self.state = 'drift'
     def end_drift_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = False
+        self.previous_state = self.state
         self.state = 'end_drift'
         self.stage += 1
     def finish(self):
