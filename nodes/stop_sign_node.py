@@ -31,11 +31,6 @@ class StopSign:
                                              Bool,
                                              queue_size=1)
         # Model for predicting whether a stop sign exists in the passed image
-        try:
-            model_size = rospy.get_param('~model_size')
-            model_size = int(model_size)
-        except KeyError, e:
-            model_size = 3
         # Image size
         self.img_width = 640
         self.img_height = 480
@@ -45,14 +40,15 @@ class StopSign:
         self.model.add(Conv2D(32, (3, 3), input_shape=input_shape))
         self.model.add(Activation('relu'))
         self.model.add(MaxPooling2D(pool_size=(2, 2)))
-        if model_size >= 2:
-            self.model.add(Conv2D(32, (3, 3)))
-            self.model.add(Activation('relu'))
-            self.model.add(MaxPooling2D(pool_size=(2, 2)))
-            if model_size >= 3:
-                self.model.add(Conv2D(64, (3, 3)))
-                self.model.add(Activation('relu'))
-                self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(32, (3, 3)))
+        self.model.add(Activation('relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(Conv2D(64, (3, 3)))
+        self.model.add(Activation('relu'))
+        self.model.add(MaxPooling2D(pool_size=(2, 2)))
+
         self.model.add(Flatten())
         self.model.add(Dense(64))
         self.model.add(Activation('relu'))
@@ -62,7 +58,7 @@ class StopSign:
         # Load previously trained model weights from file
         try:
             r = rospkg.RosPack()
-            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_{}.h5".format(model_size)
+            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_3.h5"
             self.model.load_weights(weights_file)
         except IOError, e:
             print e
