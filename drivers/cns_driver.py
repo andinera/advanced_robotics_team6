@@ -61,7 +61,7 @@ class CNS:
         self.imu_sub = rospy.Subscriber("imu/data",
                                         Imu,
                                         self.imu_callback)
-        self.imu_raw_sub = rospy.Subscriber("imu/raw_data",
+        self.imu_raw_sub = rospy.Subscriber("imu/data_raw",
                                         Imu,
                                         self.imu_raw_callback)
         # Sleep to allow the sensor data structures to populate
