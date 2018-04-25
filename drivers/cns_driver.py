@@ -30,6 +30,15 @@ class CNS:
                            'linear_acceleration': {'x': Manager().list(),
                                                    'y': Manager().list(),
                                                    'z': Manager().list()}}
+        self.imu_raw_states = {'orientation': {'x': Manager().list(),
+                                           'y': Manager().list(),
+                                           'z': Manager().list()},
+                           'angular_velocity': {'x': Manager().list(),
+                                                'y': Manager().list(),
+                                                'z': Manager().list()},
+                           'linear_acceleration': {'x': Manager().list(),
+                                                   'y': Manager().list(),
+                                                   'z': Manager().list()}}
 
         # Initialize services for sending motor and steering commands
         rospy.wait_for_service('motor_cmd')
@@ -52,6 +61,9 @@ class CNS:
         self.imu_sub = rospy.Subscriber("imu/data",
                                         Imu,
                                         self.imu_callback)
+        self.imu_raw_sub = rospy.Subscriber("imu/raw_data",
+                                        Imu,
+                                        self.imu_raw_callback)
         # Sleep to allow the sensor data structures to populate
         rospy.sleep(0.25)
 
@@ -105,3 +117,25 @@ class CNS:
         if len(self.imu_states['linear_acceleration']['z']) >= NUM_READINGS:
             del self.imu_states['linear_acceleration']['z'][0]
         self.imu_states['linear_acceleration']['z'].append(data.linear_acceleration.x)
+
+    def imu_raw_callback(self, data):
+
+        if len(self.imu_raw_states['angular_velocity']['x']) >= NUM_READINGS:
+            del self.imu_raw_states['angular_velocity']['x'][0]
+        self.imu_raw_states['angular_velocity']['x'].append(data.angular_velocity.x)
+        if len(self.imu_raw_states['angular_velocity']['y']) >= NUM_READINGS:
+            del self.imu_raw_states['angular_velocity']['y'][0]
+        self.imu_raw_states['angular_velocity']['y'].append(data.angular_velocity.y)
+        if len(self.imu_raw_states['angular_velocity']['z']) >= NUM_READINGS:
+            del self.imu_raw_states['angular_velocity']['z'][0]
+        self.imu_raw_states['angular_velocity']['z'].append(data.angular_velocity.z)
+
+        if len(self.imu_raw_states['linear_acceleration']['x']) >= NUM_READINGS:
+            del self.imu_raw_states['linear_acceleration']['x'][0]
+        self.imu_raw_states['linear_acceleration']['x'].append(data.linear_acceleration.x)
+        if len(self.imu_raw_states['linear_acceleration']['y']) >= NUM_READINGS:
+            del self.imu_raw_states['linear_acceleration']['y'][0]
+        self.imu_raw_states['linear_acceleration']['y'].append(data.linear_acceleration.x)
+        if len(self.imu_raw_states['linear_acceleration']['z']) >= NUM_READINGS:
+            del self.imu_raw_states['linear_acceleration']['z'][0]
+        self.imu_raw_states['linear_acceleration']['z'].append(data.linear_acceleration.x)
