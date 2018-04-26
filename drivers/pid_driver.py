@@ -62,7 +62,10 @@ class PID:
         pass
 
     def pid_control_effort_callback(self, data):
-        self.control_effort = int(data.data)
+        if math.isnan(data.data):
+            self.control_effort = 0
+        else:
+            self.control_effort = int(data.data)
 
     # Initialize IR setpoint
     def ir_setpoint(self, states=None, setpoint=None):

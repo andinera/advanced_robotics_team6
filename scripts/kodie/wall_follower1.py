@@ -26,11 +26,8 @@ class Wall_Follower:
         self.wall_speed = 6350
         self.door_speed = 6250
         self.corner_speed = 6200
-        self.near_corner_speed = 4500
-        self.near_corner_stopped_speed = 6200
         self.acceleration_min = 0.0001
         self.doorways_seen_threshold = 0
-
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -53,7 +50,6 @@ class Wall_Follower:
         # Initialize servo and motor to neutral
         self.motor_srv(MOTOR_CENTER)
         self.steering_srv(STEERING_CENTER)
-
         self.write_data = False
 
         # used for recording data
@@ -62,7 +58,6 @@ class Wall_Follower:
             csv_out = open("/home/odroid/ros_ws/src/advanced_robotics_team6/data/ir_course_data_blockedwindow_1.csv", 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
-
         # Publish PID setpoints
         self.bottom_ir_pid.ir_setpoint(setpoint=125)
         self.top_ir_pid.ir_setpoint(setpoint=130)
@@ -92,10 +87,6 @@ class Wall_Follower:
                     self.motor_srv(self.motor_speed)
                 elif self.state == 'corner':
                     self.motor_srv(self.corner_speed)
-                elif self.state == 'near_corner':
-                    self.motor_srv(self.near_corner_speed)
-                elif self.state == 'near_corner_stopped':
-                    self.motor_srv(self.near_corner_stopped_speed)
                 else:
                     self.motor_srv(self.door_speed)
 
@@ -147,7 +138,6 @@ class Wall_Follower:
                     bottom_ir_pid.ignore = True
                     top_ir_pid.ignore = True
                     wall_imu_pid.ignore = True      # don't know of any reason this should be False at this point
-
                     # enable corner_imu_pid
                     corner_imu_pid.ignore = False
                     imu_setpoint = wall_imu_pid.setpoint.data - math.radians(90)
@@ -162,11 +152,9 @@ class Wall_Follower:
                     # ignore IR sensor that has detected doorway
                     self.bottom_ir_pid.ignore = True
                     self.top_ir_pid.ignore = True
-
                     # use imu wall-following PID controller
                     self.wall_imu_pid.ignore = False
                     self.state = 'doorway'
-
                 else:
                     #protect against entering or exiting a corner
                     if bottom_ir_error < 5 and top_ir_error < 5:
@@ -175,10 +163,8 @@ class Wall_Follower:
                         headings = self.cns.imu_states['orientation']['z'][:]
                         for i in range(-1,-9,-1):
                             imu_setpoint = imu_setpoint + headings[i]/8
-
                         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
                         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
-
                     if bottom_ir_error < self.bottom_c_min and top_ir_error < self.top_c_min:
                         self.bottom_ir_pid.ignore = False
                         self.top_ir_pid.ignore = False
@@ -236,12 +222,8 @@ class Wall_Follower:
                 #    print "exited turn due to top IR getting closer"
                 if corner_imu_error < math.pi/9:
                     print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
-
                     # both IR errors are less than corner state
-
                     if top_ir_error < 100 and bottom_ir_error < 100:
-
-
                         # turn top and bottom IR PID control back on
                         self.bottom_ir_pid.ignore = False
                         self.top_ir_pid.ignore = False
@@ -258,46 +240,6 @@ class Wall_Follower:
                         self.wall_imu_pid.ignore = True
                         self.corner_imu_pid.ignore = True
                         print "Using top ir sensor for wall follow"
-
-            elif self.state == 'corner_near':
-        		#enter corner
-                if bottom_ir_error > self.bottom_c_min and top_ir_error > self.to_c_min and top_ir_error < self.top_c_max and self.corner_imu_pid.turns_completed < 2 and top_ir_diff < 100 and bottom_ir_diff > 1000:
-                    self.bottom_ir_pid.ignore = True
-                    self.top_ir_pid.ignore = True
-                    self.wall_imu_pid.ignore = True
-                    self.corner_imu_pid.ignore = False
-                    self.state = 'corner'
-        		#enter wall follow
-                elif bottom_ir_error < 100 and top_ir_error < 100 and bottom_ir_diff < 30 and top_ir_diff < 30:
-                    self.corner_imu_pid.doorways_seen += 1
-                    self.bottom_ir_pid.ignore = False
-                    self.top_ir_pid.ignore = False
-                    self.wall_imu_pid.ignore = True
-                    self.state = 'wall_follow'
-                    print "Exited Doorway with standard method"
-        		#enter doorway
-                elif top_ir_error > TOP_D_MIN and top_ir_diff > 50  or (bottom_ir_error > self.bottom_d_min and bottom_ir_error < self.bottom_d_max and bottom_ir_diff > 50):
-            		if self.corner_imu_pid.accel_data_states[-1] < self.acceleration_min:
-            			self.state = 'corner_near_stopped'
-
-            elif self.state == 'corner_near_stopped':
-                if bottom_ir_error > self.bottom_c_min and top_ir_error > self.top_c_min and top_ir_error < self.top_c_max and self.corner_imu_pid.turns_completed < 2 and top_ir_diff < 100 and bottom_ir_diff > 1000:
-                    self.bottom_ir_pid.ignore = True
-                    self.top_ir_pid.ignore = True
-                    self.wall_imu_pid.ignore = False
-                    self.corner_imu_pid.ignore = True
-                    self.state = 'corner'
-        		#enter doorway
-                elif bottom_ir_error < 100 and top_ir_error < 100 and bottom_ir_diff < 30 and top_ir_diff < 30:
-                    self.corner_imu_pid.doorways_seen += 1
-                    self.bottom_ir_pid.ignore = False
-                    self.top_ir_pid.ignore = False
-                    self.wall_imu_pid.ignore = True
-                    state = 'wall_follow'
-                    print "Exited Doorway with standard method"
-        		#enter doorway
-                elif top_ir_error > TOP_D_MIN and top_ir_diff > 50  or (bottom_ir_error > self.bottom_d_min and bottom_ir_error < self.bottom_d_max and bottom_ir_diff > 50):
-                    pass
 
             else:
                 print "Entered default case in state machine."
