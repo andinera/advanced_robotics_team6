@@ -22,14 +22,6 @@ class StopSign:
         # Manage the frequency object recognition is performed
         self.timer = time()
         self.frequency = 1
-        # Subscribes to image stream
-        self.image_sub = rospy.Subscriber('camera/image_rect',
-                                          Image,
-                                          self.image_callback)
-        # Publishes object recognition prediction
-        self.stop_sign_pub = rospy.Publisher('stop_sign_detector',
-                                             Bool,
-                                             queue_size=1)
         # Model for predicting whether a stop sign exists in the passed image
         # Image size
         self.img_width = 640
@@ -58,7 +50,7 @@ class StopSign:
         # Load previously trained model weights from file
         try:
             r = rospkg.RosPack()
-            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_3.h5"
+            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/my_weights_theano.h5"
             self.model.load_weights(weights_file)
         except IOError, e:
             print e
@@ -66,6 +58,16 @@ class StopSign:
         self.model.compile(loss='binary_crossentropy',
                       optimizer='rmsprop',
                       metrics=['accuracy'])
+
+
+        # Publishes object recognition prediction
+        self.stop_sign_pub = rospy.Publisher('stop_sign_detector',
+                                             Bool,
+                                             queue_size=1)
+        # Subscribes to image stream
+        self.image_sub = rospy.Subscriber('camera/image_rect',
+                                          Image,
+                                          self.image_callback)
 
     # Handle images received from camera
     def image_callback(self, msg):
@@ -83,14 +85,15 @@ class StopSign:
             # Normalize the image
             image = np.divide(image, 255.)
             # Perform prediction
-            prediction = model.predict(image, batch_size=1)
+            prediction = self.model.predict(image, batch_size=1)
+            print prediction
             # Publish prediction
-            if prediction >= 0.5:
-                print "Stop sign detected."
-                self.stop_sign_pub.publish(True)
-            else:
-                print "No stop sign detected."
-                self.stop_sign_pub.publish(False)
+            # if prediction >= 0.5:
+            #     print "Stop sign detected."
+            #     self.stop_sign_pub.publish(True)
+            # else:
+            #     print "No stop sign detected."
+            #     self.stop_sign_pub.publish(False)
 
 if __name__ == '__main__':
     rospy.init_node('stop_sign_node', anonymous=True)
