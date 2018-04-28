@@ -66,11 +66,11 @@ class Pololu:
             self.ir_two_pub.publish(self.ir_state)
             # If motor command is requested, set motor setpoint
             if self.motor_cmd != 0:
-                motor.set_target(self.motor_cmd)
+                self.motor.set_target(self.motor_cmd)
                 self.motor_cmd = 0
             # If steering command is requested, set steering setpoint
             if self.steering_cmd != 0:
-                steering.set_target(self.steering_cmd)
+                self.steering.set_target(self.steering_cmd)
                 self.steering_cmd = 0
 
 # Method to make script directly callable

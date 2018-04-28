@@ -22,8 +22,8 @@ class Wall_Follower:
         # Driver for sensor input gathering
         self.cns = cns_driver.CNS()
         # PID drivers
-        self.bottom_ir_pid = pid_driver.PID("ir/bottom", NUM_STATES_STORED)
-        self.top_ir_pid = pid_driver.PID("ir/top", NUM_STATES_STORED)
+        self.bottom_ir_pid = pid_driver.PID("ir/one", NUM_STATES_STORED)
+        self.top_ir_pid = pid_driver.PID("ir/two", NUM_STATES_STORED)
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
@@ -85,8 +85,8 @@ class Wall_Follower:
             corner_imu_error = math.fabs(self.corner_imu_pid.setpoint.data - self.corner_imu_pid.state.data)  # [rad]
 
             # finite differencing on state to estimate derivative (divide by timestep?)
-            bottom_ir_diff = math.fabs(self.bottom_ir_pid.state.data - self.cns.bottom_ir_states[-2])    # [cm]
-            top_ir_diff = math.fabs(self.top_ir_pid.state.data - self.cns.top_ir_states[-2])             # [cm]
+            bottom_ir_diff = math.fabs(self.bottom_ir_pid.state.data - self.cns.ir_one_states[-2])    # [cm]
+            top_ir_diff = math.fabs(self.top_ir_pid.state.data - self.cns.ir_two_states[-2])             # [cm]
             wall_imu_diff = math.fabs(self.wall_imu_pid.state.data - self.cns.imu_states['orientation']['z'][-2])     # [rad]
             corner_imu_diff = math.fabs(self.corner_imu_pid.state.data - self.cns.imu_states['orientation']['z'][-2]) # [rad]
 
@@ -245,8 +245,8 @@ class Wall_Follower:
             self.publish_states()
 
     def publish_states(self):
-        self.bottom_ir_pid.ir_publish_state(self.cns.bottom_ir_states)
-        self.top_ir_pid.ir_publish_state(self.cns.top_ir_states)
+        self.bottom_ir_pid.ir_publish_state(self.cns.ir_one_states)
+        self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
         self.wall_imu_pid.imu_publish_state(self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_publish_state(state=self.wall_imu_pid.state.data)
 

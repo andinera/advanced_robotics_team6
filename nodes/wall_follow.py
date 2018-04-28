@@ -19,7 +19,7 @@ class WallFollow:
         self.event = Event()
         # Initialize Wall_Follower script
         try:
-            wall_follower = globals()[self.dev].wall_follower.Wall_Follower(event)
+            self.wall_follower = globals()[self.dev].wall_follower.Wall_Follower(self.event)
         except KeyError, e:
             print "Developer not specified:", e
             nodes = os.popen('rosnode list').readlines()
@@ -33,18 +33,18 @@ class WallFollow:
 
     def iterate(self):
         # Run state machine
-        Thread(target=wall_follower.execute).start()
+        Thread(target=self.wall_follower.execute).start()
         # Begin iterations at set freuqency
         while not rospy.is_shutdown():
             # Iterate at set frequency
-            while not rospy.is_shutdown() and timer > rospy.get_rostime():
+            while not rospy.is_shutdown() and self.timer > rospy.get_rostime():
                 rospy.sleep(0.1/self.frequency)
             # Reset freuqency timer
             self.timer += rospy.Duration(1.0/self.frequency)
             # Allow processes waiting on event to run
             self.event.set()
         # Perform any necessary cleaning up before ending script
-        wall_follower.finish()
+        self.wall_follower.finish()
 
 if __name__ == '__main__':
     rospy.init_node('wall_follow_node', anonymous=True)
