@@ -21,7 +21,7 @@ class ImuOdometry:
         self.odometry = Odometry()
 
     # Callback for imu data
-    def imu_callback(data):
+    def imu_callback(self, data):
         x = data.orientation.x
         y = data.orientation.y
         z = data.orientation.z
@@ -31,7 +31,7 @@ class ImuOdometry:
         self.odometry.pose.pose.orientation.y = y
         self.odometry.pose.pose.orientation.z = z
         self.odometry.pose.pose.orientation.w = w
-        pub.publish(self.odometry)
+        self.imu_pub.publish(self.odometry)
 
 # Method for calling script directly
 if __name__ == '__main__':

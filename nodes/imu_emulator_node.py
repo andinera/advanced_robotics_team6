@@ -77,13 +77,13 @@ class DummyImu:
 
             # Transfer magnetic data
             self.mag.header.stamp = rospy.Time.now()
-            self.mag.magnetic_field.x = uniform(-1.0, 1.0)
+            self.mag.magnetic_field.x += 0.1
             if self.mag.magnetic_field.x > 1.0:
                 self.mag.magnetic_field.x = -1.0
-            self.mag.magnetic_field.y = uniform(-1.0, 1.0)
+            self.mag.magnetic_field.y += 0.1
             if self.mag.magnetic_field.y > 1.0:
                 self.mag.magnetic_field.y = -1.0
-            self.mag.magnetic_field.z = uniform(-1.0, 1.0)
+            self.mag.magnetic_field.z += 0.1
             if self.mag.magnetic_field.z > 1.0:
                 self.mag.magnetic_field.z = -1.0
             # Publish data
