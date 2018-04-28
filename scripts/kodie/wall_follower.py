@@ -56,9 +56,9 @@ class Wall_Follower:
         self.wall_speed = 6300
         self.door_speed = 6250
         self.corner_speed = 6200
-        self.near_corner_speed = 4500
+        self.near_corner_speed = 6200
         self.near_corner_stopped_speed = 6200
-        self.finishing_speed = 6200
+        self.finishing_speed = 6300
         #drift speeds
         self.drift_wall_speed = 6200
         self.drift_speed = 4005
@@ -71,8 +71,8 @@ class Wall_Follower:
         # Driver for sensor input gathering
         self.cns = cns_driver.CNS()
         # PID drivers
-        self.bottom_ir_pid = pid_driver.PID("ir/bottom", NUM_STATES_STORED)
-        self.top_ir_pid = pid_driver.PID("ir/top", NUM_STATES_STORED)
+        self.bottom_ir_pid = pid_driver.PID("ir/one", NUM_STATES_STORED)
+        self.top_ir_pid = pid_driver.PID("ir/two", NUM_STATES_STORED)
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
@@ -168,7 +168,7 @@ class Wall_Follower:
                     else:
                         self.motor_srv(self.drift_wall_speed)
                 else:
-                    if False and self.stage == 2:
+                    if self.stage == 2:
                         self.motor_srv(self.finishing_speed)
                     elif self.state == 'wall_follow':
                         self.motor_srv(self.motor_speed)
@@ -189,13 +189,13 @@ class Wall_Follower:
 		print "loop entered"
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.top_ir_states) > NUM_RECORDED_STATES-1:
+            if len(self.cns.ir_two_states) > NUM_RECORDED_STATES-1:
 		#print "doing regression"
                 x_range = [x for x in range(NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 top_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                top_ir_states = np.array(self.cns.top_ir_states[0:NUM_RECORDED_STATES])
+                top_ir_states = np.array(self.cns.ir_two_states[0:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES).reshape(-1,1)
@@ -211,7 +211,7 @@ class Wall_Follower:
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 bottom_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                bottom_ir_states = np.array(self.cns.bottom_ir_states[bottom_number:NUM_RECORDED_STATES])
+                bottom_ir_states = np.array(self.cns.ir_one_states[bottom_number:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES-bottom_number).reshape(-1,1)
@@ -222,11 +222,11 @@ class Wall_Follower:
             self.ir_top = self.top_ir_pid.state.data
             self.ir_bottom = self.bottom_ir_pid.state.data
             # define setpoint error values for state switching logic
-            self.ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data) 
+            self.ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)
             # finite differencing on state to estimate derivative
             self.ir_bottom_diff = math.fabs(self.bottom_ir_pid.state.data - self.bottom_ir_pid.reported_states[-2])
             self.ir_top_diff = math.fabs(self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2])
-            self.ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2] 
+            self.ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2]
 
             self.ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             #accelerameter states for simplicity
@@ -258,7 +258,7 @@ class Wall_Follower:
                 self.writer.writerow([time.time(),0,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
                   self.imu_corner_error, self.x_accel, self.y_accel,\
-                   self.regression_coef, self.regression_score, self.predicted_wall_distance,\
+                   self.regression_coef, self.regression_score, self.predicted_wall_distance,self.predicted_bottom_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
                    self.cns.imu_states['orientation']['z'][-1]])
 
@@ -313,11 +313,11 @@ class Wall_Follower:
 
     def publish_states(self):
         if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
-            self.bottom_ir_pid.ir_publish_state(states=self.cns.bottom_ir_states)
+            self.bottom_ir_pid.ir_publish_state(states=self.cns.ir_one_states)
         else:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
 
-        self.top_ir_pid.ir_publish_state(self.cns.top_ir_states)
+        self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
 
     def publish_steering_cmd(self):
         if self.state != 'corner':    # Set steering command as average of steering commands that we want to use
@@ -417,13 +417,13 @@ class Wall_Follower:
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = False
+        self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'doorway'
         self.time_of_state_change = time.time()
     def cornernear_config(self):
-        self.bottom_ir_pid.ignore = False
+        self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
