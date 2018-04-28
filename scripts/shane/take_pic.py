@@ -34,7 +34,7 @@ class TakePic:
             # print("Saved an image!")
             self.timer = time() + 0.1
             # Save your OpenCV2 image as a jpeg
-            file_name = 'LAB01_{:04d}.png'.format(self.id)
+            file_name = 'other_{:04d}.png'.format(self.id)
             self.id += 1
             cv2.imwrite(file_name, cv2_img)
             print self.id
