@@ -230,9 +230,6 @@ class Wall_Follower:
             #rospy.loginfo("corner_imu_error:\t%f", self.imu_corner_error)
             #rospy.loginfo("x_acceleration:\t%f", self.x_accel)
             #rospy.loginfo("y_acceleration:\t%f",self.y_accel)
-            print "x: ", self.cns.imu_states['orientation']['x'][-1]
-            print "y: ", self.cns.imu_states['orientation']['y'][-1]
-            print "z: ", self.cns.imu_states['orientation']['z'][-1]
             #if self.do_regression:
                 #rospy.loginfo("Regression Coef:\t%f", self.regression.coef_)
                 #rospy.loginfo("Predicted Wall Distance:\t%f",self.predicted_wall_distance )
@@ -240,13 +237,11 @@ class Wall_Follower:
             if self.write_data:
                 self.writer.writerow([time.time(),0,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
-                  self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
+                  self.imu_heading, self.imu_corner_error,\
                    self.regression_coef, self.regression_score, self.predicted_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
                    self.cns.imu_states['orientation']['z'][-1],self.cns.imu_states['linear_acceleration']['x'][-1],\
-                   self.cns.imu_states['linear_acceleration']['y'][-1],self.cns.imu_states['linear_acceleration']['z'][-1],\
-                   self.cns.imu_raw_states['linear_acceleration']['x'][-1],self.cns.imu_raw_states['linear_acceleration']['y'][-1],\
-                   self.cns.imu_raw_states['linear_acceleration']['z'][-1]])
+                   self.cns.imu_states['linear_acceleration']['y'][-1],self.cns.imu_states['linear_acceleration']['z'][-1])
             #print "Step 4"
             #print time.time()
 

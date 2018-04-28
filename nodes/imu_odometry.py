@@ -12,7 +12,6 @@ def imu_callback(data, pub):
     y = data.orientation.y
     z = data.orientation.z
     w = data.orientation.w
-    print "x,y,z,w: ",[x,y,z,w]
     odometry = Odometry()
     odometry.header = data.header
     odometry.pose.pose.orientation.x = x

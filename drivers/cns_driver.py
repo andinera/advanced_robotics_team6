@@ -86,8 +86,8 @@ class CNS:
         z = data.orientation.z
         w = data.orientation.w
         angles = euler_from_quaternion([x, y, z, w])
-        quat = quaternion_from_euler(angles[0],angles[1],angles[2])
-        print "quaternion:", quat
+        #quat = quaternion_from_euler(angles[0],angles[1],angles[2])
+        #print "quaternion:", quat
         if len(self.imu_states['orientation']['x']) >= NUM_READINGS:
             del self.imu_states['orientation']['x'][0]
         self.imu_states['orientation']['x'].append(angles[0])
