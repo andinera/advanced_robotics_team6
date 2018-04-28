@@ -52,12 +52,12 @@ class Wall_Follower:
         self.top_drift = 200
         self.side_acceration_limit = 0.5
         #state speeds
-        self.motor_speed = 6300
-        self.wall_speed = 6300
-        self.door_speed = 6250
-        self.corner_speed = 6200
-        self.near_corner_speed = 6200
-        self.near_corner_stopped_speed = 6200
+        self.motor_speed = 6500
+        self.wall_speed = 6500
+        self.door_speed = 6500
+        self.corner_speed = 6500
+        self.near_corner_speed = 6500
+        self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
         #drift speeds
         self.drift_wall_speed = 6200
@@ -76,7 +76,7 @@ class Wall_Follower:
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
-        self.bottom_ir_pid.ir_setpoint(setpoint=190)
+        self.bottom_ir_pid.ir_setpoint(setpoint=230)
 	    #self.bottom_ir_pid.ir_setpoint()
         self.top_ir_pid.ir_setpoint(setpoint=140)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
@@ -90,8 +90,6 @@ class Wall_Follower:
         self.motor_srv(MOTOR_CENTER)
         self.steering_srv(STEERING_CENTER)
         rospy.sleep(1)
-
-
 
         #initialze data for wall_logic
         self.regression = linear_model.LinearRegression()
@@ -122,7 +120,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/testAccel{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/testruns{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -133,7 +131,7 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(6300)
+        self.motor_srv(6400)
         print "MOTOR SPEED: ", self.motor_speed
 
         self.state = "wall_follow"
@@ -158,28 +156,19 @@ class Wall_Follower:
         #set speeds for different states
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
-            #set speeds for different states
-            if self.previous_state != self.state:
-                print "Changing Speed"
-		self.previous_state = self.state
-                if self.drift:
-                    if self.state == 'drift':
-                        self.motor_srv(self.drift_speed)
-                    else:
-                        self.motor_srv(self.drift_wall_speed)
-                else:
-                    if self.stage == 2:
-                        self.motor_srv(self.finishing_speed)
-                    elif self.state == 'wall_follow':
-                        self.motor_srv(self.motor_speed)
-                    elif self.state == 'corner':
-                        self.motor_srv(self.corner_speed)
-                    elif self.state == 'corner_near':
-                        self.motor_srv(self.near_corner_speed)
-                    elif self.state == 'corner_near_stopped':
-                        self.motor_srv(self.near_corner_stopped_speed)
-                    else:
-                        self.motor_srv(self.door_speed)
+            #set speeds for different stat  
+            #if self.stage == 2:
+            #   self.motor_srv(self.finishing_speed)
+            #elif self.state == 'wall_follow':
+            #    self.motor_srv(self.motor_speed)
+            #elif self.state == 'corner':
+            #    self.motor_srv(self.corner_speed)
+            #elif self.state == 'corner_near':
+            #    self.motor_srv(self.near_corner_speed)
+            #elif self.state == 'corner_near_stopped':
+            #    self.motor_srv(self.near_corner_stopped_speed)
+            #else:
+            #    self.motor_srv(self.door_speed)
 
             #self.event.wait()
             self.event.clear()
@@ -332,7 +321,10 @@ class Wall_Follower:
             if not self.corner_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.corner_imu_pid.control_effort
-            steering_cmd /= i
+	    if i == 0:
+		steering_cmd = 0
+	    else: 
+                steering_cmd /= i
             if self.take_data :
                 self.steering_srv(STEERING_CENTER)
             else:
@@ -413,7 +405,7 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = True
         self.previous_state = self.state
         self.state = 'corner'
-        self.stage += 1
+        #self.stage += 1
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
