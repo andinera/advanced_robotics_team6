@@ -10,6 +10,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 import numpy as np
 from time import time
+from threading import Event
 
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
@@ -18,6 +19,9 @@ from std_msgs.msg import Bool
 class StopSign:
     # Object initialization method
     def __init__(self):
+
+	self.event = Event()
+	self.event.set()
         self.bridge = CvBridge()
         # Manage the frequency object recognition is performed
         self.timer = time()
@@ -71,7 +75,8 @@ class StopSign:
     # Handle images received from camera
     def image_callback(self, msg):
         # Perform prediction per the set frequency
-        if self.timer <= time():
+        if self.timer <= time() or self.event.isSet():
+	    self.event.clear()
             self.timer += self.frequency
             # Convert ros image to cv image
             try:
@@ -86,6 +91,7 @@ class StopSign:
             # Perform prediction
             prediction = self.model.predict(image, batch_size=1)
             print prediction
+            self.event.set()
             # Publish prediction
             # if prediction >= 0.5:
             #     print "Stop sign detected."
