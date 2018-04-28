@@ -31,14 +31,14 @@ class Pololu:
                                           PololuCmd,
                                           self.steering_handler)
         # Controllers for individual pololu peripheral devices
-        self.steering = pololu.Controller(0)
-        self.motor = pololu.Controller(1)
-        self.ir_one = pololu.Controller(2)
-        self.ir_two = pololu.Controller(3)
+        with (pololu.Controller(0) as self.steering,
+              pololu.Controller(1) as self.motor,
+              pololu.Controller(2) as self.ir_one,
+              pololu.Controller(3) as self.ir_two):
         # Initialize variables
-        self.motor_cmd = 0
-        self.steering_cmd = 0
-        self.timer = rospy.get_rostime()
+            self.motor_cmd = 0
+            self.steering_cmd = 0
+            self.timer = rospy.get_rostime()
 
     # Handler for motor service call
     def motor_handler(self, req):
