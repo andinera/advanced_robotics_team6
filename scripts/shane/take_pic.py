@@ -32,14 +32,12 @@ class TakePic:
             print(e)
         if self.timer <= time():
             # print("Saved an image!")
-            self.timer = time()
+            self.timer = time() + 0.1
             # Save your OpenCV2 image as a jpeg
-            file_name = 'LAB01_{}.jpeg'.format(self.id)
+            file_name = 'LAB01_{:04d}.png'.format(self.id)
             self.id += 1
             cv2.imwrite(file_name, cv2_img)
             print self.id
-
-
 
 if __name__ == '__main__':
     rospy.init_node('image_listener')

@@ -17,7 +17,7 @@ class Wall_Follower:
 
     def __init__(self,event):
         self.drift = False
-        self.take_data = True
+        self.take_data = False
         self.write_data = True
         #stage 0 corner values
         self.top_c_min_0 = 75
@@ -56,7 +56,8 @@ class Wall_Follower:
         self.drift_speed = 4005
 
         self.acceleration_min = 1
-        self.doorways_seen_threshold = 0
+        self.corner_almost_complete = False
+        self.doorways_seen = 0
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -112,7 +113,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/forward_angle_data/corner2{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/testAccel{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -216,7 +217,7 @@ class Wall_Follower:
             print "imu heading", self.imu_heading
             #print self.ir_top
             #print self.ir_bottom
-	    #print self.ir_bottom_error
+	        #print self.ir_bottom_error
             #print all useful information
             #print self.state
             #print self.stage
@@ -237,13 +238,10 @@ class Wall_Follower:
             if self.write_data:
                 self.writer.writerow([time.time(),0,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
-                  self.imu_heading, self.imu_corner_error,\
+                  self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
                    self.regression_coef, self.regression_score, self.predicted_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
-                   self.cns.imu_states['orientation']['z'][-1],self.cns.imu_states['linear_acceleration']['x'][-1],\
-                   self.cns.imu_states['linear_acceleration']['y'][-1],self.cns.imu_states['linear_acceleration']['z'][-1]])
-            #print "Step 4"
-            #print time.time()
+                   self.cns.imu_states['orientation']['z'][-1]])
 
             if self.state == 'data':
                 print "data"
@@ -281,12 +279,11 @@ class Wall_Follower:
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
                 rospy.loginfo("CORNERING:Corner state-\t{}, Corner error-\t{}".format(math.degrees(self.corner_imu_pid.state.data), math.degrees(self.corner_imu_pid.state.data - self.corner_imu_pid.setpoint.data)))
-                if self.imu_corner_error < math.radians(20):
-                    print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
-                    #continues to control off of imu until it meets wall follow conditions
-                    #enter wall follow
-                    if ir_bottom_error < 150 and ir_bottom_diff < 10:
-                       self. wall_config()
+                if self.ir_bottom > 500 and self.corner_almost_complete == False:
+                    self.corner_almost_complete = True
+                if ir_bottom < 200 and self.corner_almost_complete == True:
+                    print "Exit Corner"
+                    self. wall_config()
             elif self.state == 'corner_near':
                 #enter corner from corner near
                 if self.corner_logic():
@@ -295,9 +292,6 @@ class Wall_Follower:
                 elif self.wall_logic():
                     self.wall_config()
                     print "Exited corner near with standard method"
-                #car has stoped to enter corner near stopped state
-            	#elif math.fabs(self.y_accel) < self.acceleration_min:
-        	   # self.state = 'corner_near_stopped'
 
             elif self.state == 'corner_near_stopped':
                 if self.corner_logic():
@@ -316,40 +310,33 @@ class Wall_Follower:
                 print "Entered default case in state machine."
 
             self.publish_states()
-            #print "Step 6"
-            #print time.time()
-
             self.publish_steering_cmd()
 
     def publish_states(self):
         self.bottom_ir_pid.ir_publish_state(self.cns.bottom_ir_states)
-
         self.top_ir_pid.ir_publish_state(self.cns.top_ir_states)
 
-        self.wall_imu_pid.imu_publish_state(self.cns.imu_states['orientation']['z'])
-
-        self.corner_imu_pid.imu_publish_state(state=self.wall_imu_pid.state.data)
-
     def publish_steering_cmd(self):
-            # Set steering command as average of steering commands that we want to use
-        i = 0
-        steering_cmd = 0
-        if not self.bottom_ir_pid.ignore:
-            i += 1
-            steering_cmd += self.bottom_ir_pid.control_effort
-        if not self.wall_imu_pid.ignore:
-            i += 1
-            steering_cmd += self.wall_imu_pid.control_effort
-        if not self.corner_imu_pid.ignore:
-            i += 1
-            steering_cmd += self.corner_imu_pid.control_effort
-        steering_cmd /= i
-        if self.take_data :
-            self.steering_srv(STEERING_CENTER)
+        if self.state != 'corner':    # Set steering command as average of steering commands that we want to use
+            i = 0
+            steering_cmd = 0
+            if not self.bottom_ir_pid.ignore:
+                i += 1
+                steering_cmd += self.bottom_ir_pid.control_effort
+            if not self.wall_imu_pid.ignore:
+                i += 1
+                steering_cmd += self.wall_imu_pid.control_effort
+            if not self.corner_imu_pid.ignore:
+                i += 1
+                steering_cmd += self.corner_imu_pid.control_effort
+            steering_cmd /= i
+            if self.take_data :
+                self.steering_srv(STEERING_CENTER)
+            else:
+                self.steering_srv(STEERING_CENTER + steering_cmd)
         else:
-            self.steering_srv(STEERING_CENTER + steering_cmd)
-	print self.bottom_ir_pid.control_effort
-	print self.wall_imu_pid.control_effort
+            self.steering_srv(7995)
+
     def wall_logic(self):
         if self.ir_bottom_error < 100 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
             return True
@@ -413,11 +400,6 @@ class Wall_Follower:
         self.state = 'wall_follow'
     def corner_config(self):
         self.bottom_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = True
-        self.corner_imu_pid.ignore = False
-        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
-        self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
-        self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.previous_state = self.state
         self.state = 'corner'
         self.stage += 1
@@ -436,7 +418,7 @@ class Wall_Follower:
     def start_drift_config(self):
         self.bottom_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True
-        self.corner_imu_pid.ignore = False
+        self.corner_imu_pid.ignore = True
         imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
