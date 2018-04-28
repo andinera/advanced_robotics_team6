@@ -50,7 +50,7 @@ class StopSign:
         # Load previously trained model weights from file
         try:
             r = rospkg.RosPack()
-            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_3c.h5"
+            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_3a.h5"
             self.model.load_weights(weights_file)
         except IOError, e:
             print e
