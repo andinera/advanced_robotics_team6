@@ -1,32 +1,28 @@
 <launch>
 
     <arg name="offline" default="false" />
+    <arg name="odometry" default="false" />
 
-    <!-- If not connected to robot -->
-    <group if="$(arg offline)">
-        <!-- Dummy node for sending IMU data -->
-        <node pkg="advanced_robotics_team6" type="dummy_imu_node.py" name="dummy_imu_node" output="screen" />
-        <!-- Dummy node for sending IR data -->
-        <node pkg="advanced_robotics_team6" type="dummy_pololu_node.py" name="dummy_pololu_node" output="screen" />
-    </group>
+    <!-- Dummy node for sending IMU data -->
+    <node if="$(arg offline)" pkg="advanced_robotics_team6" type="imu_emulator_node.py" name="imu_emulator_node" output="screen" />
 
-    <!-- If connected to robot -->
-    <group unless="$(arg offline)">
-        <!-- Node for sending IMU data -->
-        <node pkg="phidgets_imu" type="phidgets_imu_node" name="phidgets_imu_node" output="screen">
-            <!-- period=4 ==> 150 Hz -->
-            <param name="period" value="4"/>
-        </node>
-        <!-- Node for sending IR data -->
-        <node pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen" />
-    </group>
+    <!-- Node for sending IMU data -->
+    <node unless="$(arg offline)" pkg="phidgets_imu" type="phidgets_imu_node" name="phidgets_imu_node" output="screen" >
+        <!-- period=4 ==> 250 Hz -->
+        <param name="period" value="4"/>
+    </node>
+
+    <!-- Node for sending IR data -->
+    <node pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen" >
+        <param name="offline" value="$(arg offline)"/>
+    </node>
 
     <!-- Initialize madgwick filter -->
     <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
         <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
     </node>
 
-    <node pkg="advanced_robotics_team6" name="imu_odometry" type="imu_odometry.py" output="screen">
+    <node if="$(arg odometry)" pkg="advanced_robotics_team6" name="imu_odometry" type="imu_odometry.py" output="screen">
     </node>
 
 </launch>

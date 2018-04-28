@@ -1,4 +1,5 @@
-*.py[cod]
+*.py[cod~]
+*.sw[op]
 
 /build
 /data/orb_slam2

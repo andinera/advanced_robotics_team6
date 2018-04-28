@@ -5,29 +5,36 @@ import rospy
 from sensor_msgs.msg import Imu
 from nav_msgs.msg import Odometry
 
-rospy.init_node('imu_odometry', anonymous=True)
 
-def imu_callback(data, pub):
-    x = data.orientation.x
-    y = data.orientation.y
-    z = data.orientation.z
-    w = data.orientation.w
-    print "x,y,z,w: ",[x,y,z,w]
-    odometry = Odometry()
-    odometry.header = data.header
-    odometry.pose.pose.orientation.x = x
-    odometry.pose.pose.orientation.y = y
-    odometry.pose.pose.orientation.z = z
-    odometry.pose.pose.orientation.w = w
-    pub.publish(odometry)
+class ImuOdometry:
 
-imu_pub = rospy.Publisher("imu/odometry",
-        	                               Odometry,
-                	                       queue_size=1)
+    def __init__(self):
+        # Publisher for publishing odometry data
+        self.imu_pub = rospy.Publisher("imu/odometry",
+                	              Odometry,
+                        	      queue_size=1)
+        # Subscriber for subscribing to IMU data
+        self.imu_sub = rospy.Subscriber("imu/data",
+                                   Imu,
+                                   self.imu_callback)
+        # Initialize message data type
+        self.odometry = Odometry()
 
-imu_sub = rospy.Subscriber("imu/data",
-                                        Imu,
-                                        imu_callback,
-										imu_pub)
+    # Callback for imu data
+    def imu_callback(data):
+        x = data.orientation.x
+        y = data.orientation.y
+        z = data.orientation.z
+        w = data.orientation.w
+        self.odometry.header = data.header
+        self.odometry.pose.pose.orientation.x = x
+        self.odometry.pose.pose.orientation.y = y
+        self.odometry.pose.pose.orientation.z = z
+        self.odometry.pose.pose.orientation.w = w
+        pub.publish(self.odometry)
 
-rospy.spin()
+# Method for calling script directly
+if __name__ == '__main__':
+    rospy.init_node('imu_odometry', anonymous=True)
+    io = ImuOdometry()
+    rospy.spin()
