@@ -19,7 +19,7 @@ class WallFollow:
         self.event = Event()
         # Initialize Wall_Follower script
         try:
-            wall_follower = globals()[DEV].wall_follower.Wall_Follower(event)
+            wall_follower = globals()[self.dev].wall_follower.Wall_Follower(event)
         except KeyError, e:
             print "Developer not specified:", e
             nodes = os.popen('rosnode list').readlines()
