@@ -157,18 +157,18 @@ class Wall_Follower:
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
             #set speeds for different stat  
-            #if self.stage == 2:
-            #   self.motor_srv(self.finishing_speed)
-            #elif self.state == 'wall_follow':
-            #    self.motor_srv(self.motor_speed)
-            #elif self.state == 'corner':
-            #    self.motor_srv(self.corner_speed)
-            #elif self.state == 'corner_near':
-            #    self.motor_srv(self.near_corner_speed)
-            #elif self.state == 'corner_near_stopped':
-            #    self.motor_srv(self.near_corner_stopped_speed)
-            #else:
-            #    self.motor_srv(self.door_speed)
+            if self.stage == 2:
+               self.motor_srv(self.finishing_speed)
+            elif self.state == 'wall_follow':
+                self.motor_srv(self.motor_speed)
+            elif self.state == 'corner':
+                self.motor_srv(self.corner_speed)
+            elif self.state == 'corner_near':
+                self.motor_srv(self.near_corner_speed)
+            elif self.state == 'corner_near_stopped':
+                self.motor_srv(self.near_corner_stopped_speed)
+            else:
+                self.motor_srv(self.door_speed)
 
             #self.event.wait()
             self.event.clear()

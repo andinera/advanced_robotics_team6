@@ -4,76 +4,56 @@ import rospy
 from std_msgs.msg import Float64
 
 from advanced_robotics_team6.srv import PololuCmd, PololuCmdResponse
-rospy.init_node('pololu_node', anonymous=True)
-if rospy.get_param('~offline'):
-    from advanced_robotics_team6.drivers import dummy_pololu_driver as pololu
-else:
-    from advanced_robotics_team6.drivers import pololu_driver as pololu
+from advanced_robotics_team6.drivers import pololu_driver as pololu
 
-class Pololu:
 
-    def __init__(self):
-        # Frequency pololu sensor data is published
-        self.frequency = 500
-        # Publisher for IR sensor data
-        self.ir_one_pub = rospy.Publisher('pololu/ir/one/data',
-                                        Float64,
-                                        queue_size=1)
-        self.ir_two_pub = rospy.Publisher('pololu/ir/two/data',
-                                     Float64,
-                                     queue_size=1)
-        # Services for sending pololu commands
-        self.ir_state = Float64()
-        self.motor_srv = rospy.Service('motor_cmd',
-                                       PololuCmd,
-                                       self.motor_handler)
-        self.steering_srv = rospy.Service('steering_cmd',
-                                          PololuCmd,
-                                          self.steering_handler)
-        # Controllers for individual pololu peripheral devices
-        with (pololu.Controller(0) as self.steering,
-              pololu.Controller(1) as self.motor,
-              pololu.Controller(2) as self.ir_one,
-              pololu.Controller(3) as self.ir_two):
-        # Initialize variables
-            self.motor_cmd = 0
-            self.steering_cmd = 0
-            self.timer = rospy.get_rostime()
+FREQUENCY = 500
 
-    # Handler for motor service call
-    def motor_handler(self, req):
-        self.motor_cmd = req.data
-        return PololuCmdResponse()
+def motor_handler(req):
+    global motor_cmd
+    motor_cmd = req.data
+    return PololuCmdResponse()
 
-    # Handler for steering service call
-    def steering_handler(self, req):
-        self.steering_cmd = req.data
-        return PololuCmdResponse()
+def steering_handler(req):
+    global steering_cmd
+    steering_cmd = req.data
+    return PololuCmdResponse()
 
-    # Method for iteratively sending and receiving data at set frequency
-    def iterate(self):
-        # Infinite loop
-        while not rospy.is_shutdown():
-            # Iterate at set frequency
-            while not rospy.is_shutdown() and self.timer > rospy.get_rostime():
-                rospy.sleep(0.1/self.frequency)
-            self.timer += rospy.Duration(1.0/self.frequency)
-            # Get and publish ir one data
-            self.ir_state.data = self.ir_one.get_position()
-            self.ir_one_pub.publish(self.ir_state)
-            # Get and publish ir two data
-            self.ir_state.data = self.ir_two.get_position()
-            self.ir_two_pub.publish(self.ir_state)
-            # If motor command is requested, set motor setpoint
-            if self.motor_cmd != 0:
-                self.motor.set_target(self.motor_cmd)
-                self.motor_cmd = 0
-            # If steering command is requested, set steering setpoint
-            if self.steering_cmd != 0:
-                self.steering.set_target(self.steering_cmd)
-                self.steering_cmd = 0
-
-# Method to make script directly callable
 if __name__ == '__main__':
-    pi = Pololu()
-    pi.iterate()
+    rospy.init_node('pololu_node', anonymous=True)
+
+    bottom_ir_pub = rospy.Publisher('pololu/ir/bottom/data', Float64, queue_size=1)
+    top_ir_pub = rospy.Publisher('pololu/ir/top/data', Float64, queue_size=1)
+    ir_state = Float64()
+
+    motor_srv = rospy.Service('motor_cmd', PololuCmd, motor_handler)
+    steering_srv = rospy.Service('steering_cmd',PololuCmd, steering_handler)
+
+    with pololu.Controller(0) as steering,     \
+            pololu.Controller(1) as motor,     \
+            pololu.Controller(2) as bottom_ir, \
+            pololu.Controller(3) as top_ir:
+
+        motor_cmd = 0
+        steering_cmd = 0
+        timer = rospy.get_rostime() + rospy.Duration(1.0/FREQUENCY)
+
+        while not rospy.is_shutdown():
+            ir_state.data = bottom_ir.get_position()
+            bottom_ir_pub.publish(ir_state)
+
+            ir_state.data = top_ir.get_position()
+            top_ir_pub.publish(ir_state)
+
+            if motor_cmd != 0:
+                motor.set_target(motor_cmd)
+                motor_cmd = 0
+
+            if steering_cmd != 0:
+                steering.set_target(steering_cmd)
+                steering_cmd = 0
+
+            # Iterate at frequency of RATE
+            while not rospy.is_shutdown() and timer > rospy.get_rostime():
+                rospy.sleep(0.1/FREQUENCY)
+timer += rospy.Duration(1.0/FREQUENCY)
