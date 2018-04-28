@@ -15,7 +15,7 @@ class TakePic:
 
     def __init__(self):
         self.bridge = CvBridge()
-        self.id = 230
+        self.id = 0
         self.timer = time()
         # Define your image topic
         image_topic = "/camera/image_rect"
@@ -31,10 +31,10 @@ class TakePic:
         except CvBridgeError, e:
             print(e)
         if self.timer <= time():
-            print("Saved an image!")
-            self.timer = time() + 0.25
+            # print("Saved an image!")
+            self.timer = time()
             # Save your OpenCV2 image as a jpeg
-            file_name = 'other_{}.jpeg'.format(self.id)
+            file_name = 'LAB01_{}.jpeg'.format(self.id)
             self.id += 1
             cv2.imwrite(file_name, cv2_img)
             print self.id
