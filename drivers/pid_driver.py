@@ -110,14 +110,17 @@ class PID:
 
 
     # Publish IR sensor state
-    def ir_publish_state(self, states):
-        stts = states[-4:-1]
-        #std_dev = numpy.std(stts)
-        #mean = numpy.mean(stts)
-        #for state in stts[:]:
-         #       if state < mean-std_dev or state > mean+std_dev:
-          #          stts.remove(state)
-        self.state.data = numpy.mean(stts)
+    def ir_publish_state(self, states=None, state=None):
+	if state:
+	    self.state.data = state
+	else:
+            stts = states[-4:-1]
+            #std_dev = numpy.std(stts)
+            #mean = numpy.mean(stts)
+            #for state in stts[:]:
+            #       if state < mean-std_dev or state > mean+std_dev:
+            #          stts.remove(state)
+            self.state.data = numpy.mean(stts)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)

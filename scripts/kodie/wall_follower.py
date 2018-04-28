@@ -96,6 +96,7 @@ class Wall_Follower:
         #initialze data for wall_logic
         self.regression = linear_model.LinearRegression()
         self.predicted_wall_distance = -1
+	self.predicted_bottom_wall_distance = -1
         self.regression_coef = -1
         self.regression_score = None
         #create top and bottom ir variables for simplisity
@@ -183,7 +184,7 @@ class Wall_Follower:
             #self.event.wait()
             self.event.clear()
 
-            while len(self.corner_imu_pid.reported_states) < 4 or len(self.bottom_ir_pid.reported_states) < 4:
+            while len(self.bottom_ir_pid.reported_states) < 4:
                 rospy.sleep(.1)
 		print "loop entered"
                 self.publish_states()
@@ -221,15 +222,11 @@ class Wall_Follower:
             self.ir_top = self.top_ir_pid.state.data
             self.ir_bottom = self.bottom_ir_pid.state.data
             # define setpoint error values for state switching logic
-            self.ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data)
-            self.imu_wall_error = math.fabs(self.wall_imu_pid.setpoint.data - self.wall_imu_pid.state.data)
-            self.imu_corner_error = math.fabs(self.corner_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
+            self.ir_bottom_error = math.fabs(self.bottom_ir_pid.setpoint.data - self.bottom_ir_pid.state.data) 
             # finite differencing on state to estimate derivative
             self.ir_bottom_diff = math.fabs(self.bottom_ir_pid.state.data - self.bottom_ir_pid.reported_states[-2])
             self.ir_top_diff = math.fabs(self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2])
-            self.ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2]
-            self.imu_wall_diff = math.fabs(self.wall_imu_pid.state.data - self.wall_imu_pid.reported_states[-2])
-            self.imu_corner_diff = math.fabs(self.corner_imu_pid.state.data - self.corner_imu_pid.reported_states[-2])
+            self.ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2] 
 
             self.ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             #accelerameter states for simplicity
@@ -260,7 +257,7 @@ class Wall_Follower:
             if self.write_data:
                 self.writer.writerow([time.time(),0,self.stage,self.ir_bottom,\
                  self.ir_bottom_error, self.ir_bottom_diff, self.ir_top, self.ir_top_diff,\
-                  self.imu_heading, self.imu_corner_error, self.x_accel, self.y_accel,\
+                  self.imu_corner_error, self.x_accel, self.y_accel,\
                    self.regression_coef, self.regression_score, self.predicted_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
                    self.cns.imu_states['orientation']['z'][-1]])
@@ -291,7 +288,7 @@ class Wall_Follower:
             elif self.state == 'corner':
                 if self.ir_bottom > 100 and self.corner_almost_complete == False:
                     self.corner_almost_complete = True
-                if ir_bottom_error < 200 and self.corner_almost_complete == True:
+                if self.ir_bottom_error < 200 and self.corner_almost_complete == True:
                     print "Exit Corner"
                     self. wall_config()
             elif self.state == 'corner_near':
@@ -315,7 +312,7 @@ class Wall_Follower:
             self.publish_steering_cmd()
 
     def publish_states(self):
-        if time.time()-self.time_of_state_change < 0.5:
+        if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
             self.bottom_ir_pid.ir_publish_state(states=self.cns.bottom_ir_states)
         else:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
@@ -377,13 +374,13 @@ class Wall_Follower:
 
         if self.stage == 0 and self.do_regression:
             if self.ir_bottom_error > self.bottom_corner_near_0 and self.ir_top < self.top_corner_near_0 and \
-            self.predicted_wall_distance < self.top_corner_near_0 and self.ir_bottom_diff > bottom_corner_near_0:
+            self.predicted_wall_distance < self.top_corner_near_0 and self.ir_bottom_diff > self.bottom_corner_near_0:
                 return True
             else:
                 return False
         elif self.stage == 1 and self.do_regression:
             if self.ir_bottom_error > self.bottom_corner_near_1 and self.ir_top < self.top_corner_near_1 and \
-            self.predicted_wall_distance < self.top_corner_near_1 and self.ir_bottom_diff > bottom_corner_near_1:
+            self.predicted_wall_distance < self.top_corner_near_1 and self.ir_bottom_diff > self.bottom_corner_near_1:
                 return True
             else:
                 return False
