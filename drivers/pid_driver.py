@@ -61,6 +61,7 @@ class PID:
     def __del__(self):
         pass
 
+    # Callback for receiving PID control effort
     def pid_control_effort_callback(self, data):
         if math.isnan(data.data):
             self.control_effort = 0

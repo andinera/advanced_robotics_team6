@@ -11,15 +11,15 @@
     </include>
 
     <!-- Initialize bottom IR PID -->
-    <node name="bottom_ir_pid" pkg="pid" type="controller" output="screen" >
-        <rosparam unless="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/bottom_ir_pid.yaml"/>
-        <rosparam if="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/dope/bottom_ir_pid.yaml"/>
+    <node name="ir_one_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam unless="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/ir_one_pid.yaml"/>
+        <rosparam if="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/dope/ir_one_pid.yaml"/>
     </node>
 
      <!-- Initialize top IR PID -->
-    <node name="top_ir_pid" pkg="pid" type="controller" output="screen" >
-        <rosparam unless="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/top_ir_pid.yaml"/>
-        <rosparam if="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/dope/top_ir_pid.yaml"/>
+    <node name="ir_two_pid" pkg="pid" type="controller" output="screen" >
+        <rosparam unless="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/ir_two_pid.yaml"/>
+        <rosparam if="$(arg dope)" command="load" file="$(find advanced_robotics_team6)/params/dope/ir_two_pid.yaml"/>
     </node>
 
     <!-- Initialize wall IMU PID -->

@@ -50,7 +50,7 @@ class StopSign:
         # Load previously trained model weights from file
         try:
             r = rospkg.RosPack()
-            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/my_weights_theano.h5"
+            weights_file = r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_3c.h5"
             self.model.load_weights(weights_file)
         except IOError, e:
             print e
@@ -58,7 +58,6 @@ class StopSign:
         self.model.compile(loss='binary_crossentropy',
                       optimizer='rmsprop',
                       metrics=['accuracy'])
-
 
         # Publishes object recognition prediction
         self.stop_sign_pub = rospy.Publisher('stop_sign_detector',
