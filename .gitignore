@@ -1,3 +1,4 @@
 *.py[cod]
 
 /build
+/data/orb_slam2
