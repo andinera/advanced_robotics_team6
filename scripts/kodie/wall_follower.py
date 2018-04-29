@@ -120,7 +120,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/testruns{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_4_29/testruns{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -135,7 +135,7 @@ class Wall_Follower:
         print "MOTOR SPEED: ", self.motor_speed
 
         self.state = "wall_follow"
-        self.stage = 1 # 1 for testing, to know if on first, second or third straightaway
+        self.stage = 0 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
         self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
@@ -309,7 +309,8 @@ class Wall_Follower:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
 
         self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
-	self.wall_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
+        self.wall_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
+        self.corner_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
 
     def publish_steering_cmd(self):
         if self.state != 'corner':    # Set steering command as average of steering commands that we want to use
@@ -399,7 +400,7 @@ class Wall_Follower:
 
     def wall_config(self):
         self.bottom_ir_pid.ignore = False
-        self.wall_imu_pid.ignore = True
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'wall_follow'
@@ -408,11 +409,14 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = True
         self.previous_state = self.state
         self.state = 'corner'
-        #self.stage += 1
+        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+        self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+        self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+        self.stage += 1
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = True
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'doorway'
