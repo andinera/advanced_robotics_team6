@@ -22,8 +22,8 @@ def steering_handler(req):
 if __name__ == '__main__':
     rospy.init_node('pololu_node', anonymous=True)
 
-    bottom_ir_pub = rospy.Publisher('pololu/ir/bottom/data', Float64, queue_size=1)
-    top_ir_pub = rospy.Publisher('pololu/ir/top/data', Float64, queue_size=1)
+    ir_one_pub = rospy.Publisher('pololu/ir/one/data', Float64, queue_size=1)
+    ir_two_pub = rospy.Publisher('pololu/ir/two/data', Float64, queue_size=1)
     ir_state = Float64()
 
     motor_srv = rospy.Service('motor_cmd', PololuCmd, motor_handler)
@@ -31,19 +31,19 @@ if __name__ == '__main__':
 
     with pololu.Controller(0) as steering,     \
             pololu.Controller(1) as motor,     \
-            pololu.Controller(2) as bottom_ir, \
-            pololu.Controller(3) as top_ir:
+            pololu.Controller(2) as ir_one, \
+            pololu.Controller(3) as ir_two:
 
         motor_cmd = 0
         steering_cmd = 0
         timer = rospy.get_rostime() + rospy.Duration(1.0/FREQUENCY)
 
         while not rospy.is_shutdown():
-            ir_state.data = bottom_ir.get_position()
-            bottom_ir_pub.publish(ir_state)
+            ir_state.data = ir_one.get_position()
+            ir_one_pub.publish(ir_state)
 
-            ir_state.data = top_ir.get_position()
-            top_ir_pub.publish(ir_state)
+            ir_state.data = ir_two.get_position()
+            ir_two_pub.publish(ir_state)
 
             if motor_cmd != 0:
                 motor.set_target(motor_cmd)

@@ -52,11 +52,11 @@ class Wall_Follower:
         self.top_drift = 200
         self.side_acceration_limit = 0.5
         #state speeds
-        self.motor_speed = 6500
-        self.wall_speed = 6500
-        self.door_speed = 6500
-        self.corner_speed = 6500
-        self.near_corner_speed = 6500
+        self.motor_speed = 6300
+        self.wall_speed = 6300
+        self.door_speed = 6300
+        self.corner_speed = 6250
+        self.near_corner_speed = 6250
         self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
         #drift speeds
@@ -301,7 +301,8 @@ class Wall_Follower:
             self.publish_steering_cmd()
 
     def publish_states(self):
-        if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
+        #if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
+        if True:
             self.bottom_ir_pid.ir_publish_state(states=self.cns.ir_one_states)
         else:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
@@ -357,7 +358,7 @@ class Wall_Follower:
 
     def doorway_logic(self):
         if self.ir_top > self.top_d_min and self.ir_bottom_error > self.bottom_d_min and \
-        self.ir_bottom_diff > 70:
+        self.ir_bottom_diff > 120:
             return True
         else:
             return False
