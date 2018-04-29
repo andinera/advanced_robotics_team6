@@ -8,8 +8,8 @@ from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
 from sklearn import linear_model
 import numpy as np
-NUM_STATES_STORED = 10
-NUM_RECORDED_STATES = 150
+NUM_STATES_STORED = 50
+NUM_RECORDED_STATES = 50
 MOTOR_CENTER = 6000
 STEERING_CENTER = 5800
 
@@ -94,7 +94,7 @@ class Wall_Follower:
         #initialze data for wall_logic
         self.regression = linear_model.LinearRegression()
         self.predicted_wall_distance = -1
-	self.predicted_bottom_wall_distance = -1
+        self.predicted_bottom_wall_distance = -1
         self.regression_coef = -1
         self.regression_score = None
         #create top and bottom ir variables for simplisity
@@ -156,7 +156,7 @@ class Wall_Follower:
         #set speeds for different states
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
-            #set speeds for different stat  
+            #set speeds for different stat
             if self.stage == 2:
                self.motor_srv(self.finishing_speed)
             elif self.state == 'wall_follow':
@@ -178,13 +178,13 @@ class Wall_Follower:
 		print "loop entered"
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.ir_two_states) > NUM_RECORDED_STATES-1:
+            if len(self.top_ir_pid.reported_states) > NUM_RECORDED_STATES-1:
 		#print "doing regression"
                 x_range = [x for x in range(NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 top_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                top_ir_states = np.array(self.cns.ir_two_states[0:NUM_RECORDED_STATES])
+                top_ir_states = np.array(self.top_ir_pid.reported_states)
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES).reshape(-1,1)
@@ -195,12 +195,12 @@ class Wall_Follower:
                 self.regression_score = self.regression.score(x_range, top_ir_states)
                 self.do_regression = True
                 #linear regression on bottom Ir
-                bottom_number = 125
+                bottom_number = 38
                 x_range = [x for x in range(bottom_number,NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 bottom_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                bottom_ir_states = np.array(self.cns.ir_one_states[bottom_number:NUM_RECORDED_STATES])
+                bottom_ir_states = np.array(self.bottom_ir_pid.reported_states[bottom_number:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES-bottom_number).reshape(-1,1)
@@ -324,7 +324,7 @@ class Wall_Follower:
                 steering_cmd += self.corner_imu_pid.control_effort
 	    if i == 0:
 		steering_cmd = 0
-	    else: 
+	    else:
                 steering_cmd /= i
             if self.take_data :
                 self.steering_srv(STEERING_CENTER)

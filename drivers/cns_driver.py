@@ -15,7 +15,7 @@ class CNS:
 
     def __init__(self):
         # Maximum length of each data list
-        self.num_readings = 151
+        self.num_readings = 10
         # Setup data structures for saving sensor input data which can be shared
         # across processes
         self.ir_one_states = []
