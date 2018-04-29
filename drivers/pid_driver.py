@@ -120,13 +120,13 @@ class PID:
                 del self.reported_states[0]
             self.reported_states.append(reported_states)
             self.state_pub.publish(self.state)
-	    elif state:
-	        self.state.data = state
+	elif state:
+	    self.state.data = state
             if len(self.reported_states) >= self.num_states_stored:
                 del self.reported_states[0]
             self.reported_states.append(self.state.data)
             self.state_pub.publish(self.state)
-	    else:
+	else:
             stts = states
             #std_dev = numpy.std(stts)
             #mean = numpy.mean(stts)
@@ -143,6 +143,7 @@ class PID:
     def imu_publish_state(self, states=None, state=None):
         if state:
             self.state.data = state
+	    print "state", state
         else:
             #stts = states[-4:-1]
             #y = 0
@@ -152,11 +153,12 @@ class PID:
                #x += math.cos(state)
             #self.state.data = math.atan2(y, x)
 	    self.state.data = states[-1]
-            if self.state.data < self.setpoint.data - math.pi:
-                self.state.data += 2*math.pi
-            elif self.state.data > self.setpoint.data + math.pi:
-                self.state.data -= 2*math.pi
+        if self.state.data < self.setpoint.data - math.pi:
+            self.state.data += 2*math.pi
+        elif self.state.data > self.setpoint.data + math.pi:
+            self.state.data -= 2*math.pi
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
+	print"updated state ", self.reported_states[-1]
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)

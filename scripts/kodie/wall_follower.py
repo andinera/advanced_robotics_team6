@@ -221,7 +221,8 @@ class Wall_Follower:
             #accelerameter states for simplicity
             self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
-            self.imu_heading = self.corner_imu_pid.state.data
+            self.imu_heading = self.wall_imu_pid.state.data
+	    print "heading", self.imu_heading
             print "top ", self.ir_top
             print "bottom ", self.ir_bottom
             print "bottom_error ",self.ir_bottom_error
@@ -308,6 +309,7 @@ class Wall_Follower:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
 
         self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
+	self.wall_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
 
     def publish_steering_cmd(self):
         if self.state != 'corner':    # Set steering command as average of steering commands that we want to use
