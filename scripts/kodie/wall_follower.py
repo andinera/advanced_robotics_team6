@@ -76,7 +76,7 @@ class Wall_Follower:
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
-        self.bottom_ir_pid.ir_setpoint(setpoint=230)
+        self.bottom_ir_pid.ir_setpoint(setpoint=180)
 	    #self.bottom_ir_pid.ir_setpoint()
         self.top_ir_pid.ir_setpoint(setpoint=140)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
@@ -137,7 +137,8 @@ class Wall_Follower:
         self.state = "wall_follow"
         self.stage = 0 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = True
+	self.bottom_ir_pid.ignore = False
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         #self.time_since_turn = rospy.get_time()
 
@@ -223,6 +224,7 @@ class Wall_Follower:
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
             self.imu_heading = self.wall_imu_pid.state.data
 	    print "heading", self.imu_heading
+	    print "setpoint", self.wall_imu_pid.setpoint.data
             print "top ", self.ir_top
             print "bottom ", self.ir_bottom
             print "bottom_error ",self.ir_bottom_error
@@ -319,9 +321,12 @@ class Wall_Follower:
             if not self.bottom_ir_pid.ignore:
                 i += 1
                 steering_cmd += self.bottom_ir_pid.control_effort
+		print "ir control: ",self.bottom_ir_pid.control_effort
+		print "ir top control", self.top_ir_pid.control_effort
             if not self.wall_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.wall_imu_pid.control_effort
+		print "wall imu control: ", self.wall_imu_pid.control_effort
             if not self.corner_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.corner_imu_pid.control_effort

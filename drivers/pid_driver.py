@@ -143,7 +143,7 @@ class PID:
     def imu_publish_state(self, states=None, state=None):
         if state:
             self.state.data = state
-	    print "state", state
+
         else:
             #stts = states[-4:-1]
             #y = 0
@@ -159,6 +159,6 @@ class PID:
             self.state.data -= 2*math.pi
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
-	print"updated state ", self.reported_states[-1]
+
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
