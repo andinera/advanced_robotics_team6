@@ -23,8 +23,8 @@ class Wall_Follower:
         # Driver for sensor input gathering
         self.cns = cns_driver.CNS()
         # PID drivers
-        self.bottom_ir_pid = pid_driver.PID("ir/bottom", NUM_STATES_STORED)
-        self.top_ir_pid = pid_driver.PID("ir/top", NUM_STATES_STORED)
+        self.bottom_ir_pid = pid_driver.PID("ir/one", NUM_STATES_STORED)
+        self.top_ir_pid = pid_driver.PID("ir/two", NUM_STATES_STORED)
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
