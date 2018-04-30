@@ -1,6 +1,7 @@
 <launch>
 
     <arg name="offline" default="false" />
+    <arg name="ir" default="true" />
 
     <!-- Dummy node for sending IMU data -->
     <node if="$(arg offline)" pkg="advanced_robotics_team6" type="imu_emulator_node.py" name="imu_emulator_node" output="screen" />
@@ -11,18 +12,17 @@
         <param name="period" value="4"/>
     </node>
 
+    <!-- Node for converting to IMU messages to Odometry messages -->
+    <node pkg="advanced_robotics_team6" type="imu_odometry.py" name="imu_odometry" output="screen" />
+
     <!-- Node for sending IR data -->
-    <node pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen" >
+    <node if="$(arg ir)" pkg="advanced_robotics_team6" type="pololu_node.py" name="pololu_node" output="screen" >
         <param name="offline" value="$(arg offline)"/>
     </node>
-
-    <node pkg="advanced_robotics_team6" type="imu_odometry.py" name="imu_odometry" output="screen" />
 
     <!-- Initialize madgwick filter -->
     <node pkg="imu_filter_madgwick" name="madgwick" type="imu_filter_node" clear_params="true">
         <rosparam command="load" file="$(find advanced_robotics_team6)/params/imu_filter_madgwick.yaml" />
     </node>
-
-
 
 </launch>
