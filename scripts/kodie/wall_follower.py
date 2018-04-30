@@ -52,8 +52,8 @@ class Wall_Follower:
         self.top_drift = 200
         self.side_acceration_limit = 0.5
         #state speeds
-        self.motor_speed = 6300
-        self.wall_speed = 6300
+        self.motor_speed = 6200
+        self.wall_speed = 6200
         self.door_speed = 6300
         self.corner_speed = 6250
         self.near_corner_speed = 6250
@@ -76,7 +76,8 @@ class Wall_Follower:
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
-        self.bottom_ir_pid.ir_setpoint(setpoint=180)
+	#setpoint = self.cns.ir_one_states[-1]
+        self.bottom_ir_pid.ir_setpoint(setpoint=190)
 	    #self.bottom_ir_pid.ir_setpoint()
         self.top_ir_pid.ir_setpoint(setpoint=140)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
@@ -253,7 +254,8 @@ class Wall_Follower:
                    self.regression_coef, self.regression_score, self.predicted_wall_distance,self.predicted_bottom_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
                    self.cns.imu_states['orientation']['z'][-1]])
-
+	    self.state = 'wall_follow'
+	    self.wall_config()
             if self.state == 'data':
                 print "data"
             elif self.state == 'wall_follow':
@@ -307,6 +309,7 @@ class Wall_Follower:
         #if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
         if True:
             self.bottom_ir_pid.ir_publish_state(states=self.cns.ir_one_states)
+	    print self.cns.ir_one_states
         else:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
 
@@ -405,7 +408,7 @@ class Wall_Follower:
 
     def wall_config(self):
         self.bottom_ir_pid.ignore = False
-        self.wall_imu_pid.ignore = False
+        self.wall_imu_pid.ignore = True
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'wall_follow'

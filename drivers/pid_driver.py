@@ -120,13 +120,13 @@ class PID:
                 del self.reported_states[0]
             self.reported_states.append(reported_states)
             self.state_pub.publish(self.state)
-	elif state:
+        elif state:
 	    self.state.data = state
             if len(self.reported_states) >= self.num_states_stored:
                 del self.reported_states[0]
             self.reported_states.append(self.state.data)
             self.state_pub.publish(self.state)
-	else:
+        else:
             stts = states
             #std_dev = numpy.std(stts)
             #mean = numpy.mean(stts)
