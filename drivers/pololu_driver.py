@@ -53,6 +53,7 @@ class Controller:
     # cont.set_target(6000)
     # This example will set the servo target to 6000.
     def set_target(self, target):
+	print target
         self.target = target
         low = int("{0:08b}".format(target)[-7:], base=2)
         high = int("{0:08b}".format(target)[0:-7], base=2)

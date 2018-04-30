@@ -8,8 +8,8 @@ from advanced_robotics_team6.drivers import *
 from advanced_robotics_team6.srv import PololuCmd
 from sklearn import linear_model
 import numpy as np
-NUM_STATES_STORED = 10
-NUM_RECORDED_STATES = 150
+NUM_STATES_STORED = 50
+NUM_RECORDED_STATES = 50
 MOTOR_CENTER = 6000
 STEERING_CENTER = 5800
 
@@ -54,10 +54,10 @@ class Wall_Follower:
         #state speeds
         self.motor_speed = 6300
         self.wall_speed = 6300
-        self.door_speed = 6250
-        self.corner_speed = 6200
-        self.near_corner_speed = 6200
-        self.near_corner_stopped_speed = 6200
+        self.door_speed = 6300
+        self.corner_speed = 6250
+        self.near_corner_speed = 6250
+        self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
         #drift speeds
         self.drift_wall_speed = 6200
@@ -76,7 +76,7 @@ class Wall_Follower:
         self.wall_imu_pid = pid_driver.PID("imu/wall", NUM_STATES_STORED)
         self.corner_imu_pid = pid_driver.PID("imu/corner", NUM_STATES_STORED)
         # Publish PID setpoints
-        self.bottom_ir_pid.ir_setpoint(setpoint=190)
+        self.bottom_ir_pid.ir_setpoint(setpoint=180)
 	    #self.bottom_ir_pid.ir_setpoint()
         self.top_ir_pid.ir_setpoint(setpoint=140)
         self.wall_imu_pid.imu_setpoint(states=self.cns.imu_states['orientation']['z'])
@@ -91,12 +91,10 @@ class Wall_Follower:
         self.steering_srv(STEERING_CENTER)
         rospy.sleep(1)
 
-
-
         #initialze data for wall_logic
         self.regression = linear_model.LinearRegression()
         self.predicted_wall_distance = -1
-	self.predicted_bottom_wall_distance = -1
+        self.predicted_bottom_wall_distance = -1
         self.regression_coef = -1
         self.regression_score = None
         #create top and bottom ir variables for simplisity
@@ -122,7 +120,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_data/testAccel{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_4_29/testruns{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -133,13 +131,14 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(6300)
+        self.motor_srv(6400)
         print "MOTOR SPEED: ", self.motor_speed
 
         self.state = "wall_follow"
-        self.stage = 1 # 1 for testing, to know if on first, second or third straightaway
+        self.stage = 0 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = True
+	self.bottom_ir_pid.ignore = False
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         #self.time_since_turn = rospy.get_time()
 
@@ -158,28 +157,19 @@ class Wall_Follower:
         #set speeds for different states
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
-            #set speeds for different states
-            if self.previous_state != self.state:
-                print "Changing Speed"
-		self.previous_state = self.state
-                if self.drift:
-                    if self.state == 'drift':
-                        self.motor_srv(self.drift_speed)
-                    else:
-                        self.motor_srv(self.drift_wall_speed)
-                else:
-                    if self.stage == 2:
-                        self.motor_srv(self.finishing_speed)
-                    elif self.state == 'wall_follow':
-                        self.motor_srv(self.motor_speed)
-                    elif self.state == 'corner':
-                        self.motor_srv(self.corner_speed)
-                    elif self.state == 'corner_near':
-                        self.motor_srv(self.near_corner_speed)
-                    elif self.state == 'corner_near_stopped':
-                        self.motor_srv(self.near_corner_stopped_speed)
-                    else:
-                        self.motor_srv(self.door_speed)
+            #set speeds for different stat
+            if self.stage == 2:
+               self.motor_srv(self.finishing_speed)
+            elif self.state == 'wall_follow':
+                self.motor_srv(self.motor_speed)
+            elif self.state == 'corner':
+                self.motor_srv(self.corner_speed)
+            elif self.state == 'corner_near':
+                self.motor_srv(self.near_corner_speed)
+            elif self.state == 'corner_near_stopped':
+                self.motor_srv(self.near_corner_stopped_speed)
+            else:
+                self.motor_srv(self.door_speed)
 
             #self.event.wait()
             self.event.clear()
@@ -189,13 +179,13 @@ class Wall_Follower:
 		print "loop entered"
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.cns.ir_two_states) > NUM_RECORDED_STATES-1:
+            if len(self.top_ir_pid.reported_states) > NUM_RECORDED_STATES-1:
 		#print "doing regression"
                 x_range = [x for x in range(NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 top_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                top_ir_states = np.array(self.cns.ir_two_states[0:NUM_RECORDED_STATES])
+                top_ir_states = np.array(self.top_ir_pid.reported_states)
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES).reshape(-1,1)
@@ -206,12 +196,12 @@ class Wall_Follower:
                 self.regression_score = self.regression.score(x_range, top_ir_states)
                 self.do_regression = True
                 #linear regression on bottom Ir
-                bottom_number = 125
+                bottom_number = 38
                 x_range = [x for x in range(bottom_number,NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
                 x_range = x_range.reshape(-1, 1)
                 bottom_ir_states = np.zeros((NUM_RECORDED_STATES,2))
-                bottom_ir_states = np.array(self.cns.ir_one_states[bottom_number:NUM_RECORDED_STATES])
+                bottom_ir_states = np.array(self.bottom_ir_pid.reported_states[bottom_number:NUM_RECORDED_STATES])
                 x_range.reshape(-1,1)
                 top_ir_states.reshape(-1,1)
                 num_states_recorded = np.array(NUM_RECORDED_STATES-bottom_number).reshape(-1,1)
@@ -232,7 +222,9 @@ class Wall_Follower:
             #accelerameter states for simplicity
             self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
-            self.imu_heading = self.corner_imu_pid.state.data
+            self.imu_heading = self.wall_imu_pid.state.data
+	    print "heading", self.imu_heading
+	    print "setpoint", self.wall_imu_pid.setpoint.data
             print "top ", self.ir_top
             print "bottom ", self.ir_bottom
             print "bottom_error ",self.ir_bottom_error
@@ -312,12 +304,15 @@ class Wall_Follower:
             self.publish_steering_cmd()
 
     def publish_states(self):
-        if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
+        #if time.time()-self.time_of_state_change < 0.5 or self.predicted_bottom_wall_distance == -1:
+        if True:
             self.bottom_ir_pid.ir_publish_state(states=self.cns.ir_one_states)
         else:
             self.bottom_ir_pid.ir_publish_state(state=self.predicted_bottom_wall_distance)
 
         self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
+        self.wall_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
+        self.corner_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
 
     def publish_steering_cmd(self):
         if self.state != 'corner':    # Set steering command as average of steering commands that we want to use
@@ -326,13 +321,19 @@ class Wall_Follower:
             if not self.bottom_ir_pid.ignore:
                 i += 1
                 steering_cmd += self.bottom_ir_pid.control_effort
+		print "ir control: ",self.bottom_ir_pid.control_effort
+		print "ir top control", self.top_ir_pid.control_effort
             if not self.wall_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.wall_imu_pid.control_effort
+		print "wall imu control: ", self.wall_imu_pid.control_effort
             if not self.corner_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.corner_imu_pid.control_effort
-            steering_cmd /= i
+	    if i == 0:
+		steering_cmd = 0
+	    else:
+                steering_cmd /= i
             if self.take_data :
                 self.steering_srv(STEERING_CENTER)
             else:
@@ -365,7 +366,7 @@ class Wall_Follower:
 
     def doorway_logic(self):
         if self.ir_top > self.top_d_min and self.ir_bottom_error > self.bottom_d_min and \
-        self.ir_bottom_diff > 70:
+        self.ir_bottom_diff > 120:
             return True
         else:
             return False
@@ -404,7 +405,7 @@ class Wall_Follower:
 
     def wall_config(self):
         self.bottom_ir_pid.ignore = False
-        self.wall_imu_pid.ignore = True
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'wall_follow'
@@ -413,11 +414,14 @@ class Wall_Follower:
         self.bottom_ir_pid.ignore = True
         self.previous_state = self.state
         self.state = 'corner'
+        imu_setpoint = self.wall_imu_pid.setpoint.data - math.radians(90)
+        self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
+        self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.stage += 1
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
-        self.wall_imu_pid.ignore = True
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'doorway'

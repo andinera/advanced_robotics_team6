@@ -61,12 +61,8 @@ class PID:
     def __del__(self):
         pass
 
-    # Callback for receiving PID control effort
     def pid_control_effort_callback(self, data):
-        if math.isnan(data.data):
-            self.control_effort = 0
-        else:
-            self.control_effort = int(data.data)
+        self.control_effort = int(data.data)
 
     # Initialize IR setpoint
     def ir_setpoint(self, states=None, setpoint=None):
@@ -111,17 +107,14 @@ class PID:
 
 
     # Publish IR sensor state
-    def ir_publish_state(self, states=None, state=None):
-	if state:
-	    self.state.data = state
-	else:
-            stts = states[-4:-1]
-            #std_dev = numpy.std(stts)
-            #mean = numpy.mean(stts)
-            #for state in stts[:]:
-            #       if state < mean-std_dev or state > mean+std_dev:
-            #          stts.remove(state)
-            self.state.data = numpy.mean(stts)
+    def ir_publish_state(self, states):
+        stts = states[:]
+        std_dev = numpy.std(stts)
+        mean = numpy.mean(stts)
+        for state in stts[:]:
+                if state < mean-std_dev or state > mean+std_dev:
+                    stts.remove(state)
+        self.state.data = numpy.mean(stts)
         if len(self.reported_states) >= self.num_states_stored:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
@@ -132,14 +125,13 @@ class PID:
         if state:
             self.state.data = state
         else:
-            #stts = states[-4:-1]
-            #y = 0
-            #x = 0
-            #for state in stts:
-               #y += math.sin(state)
-               #x += math.cos(state)
-            #self.state.data = math.atan2(y, x)
-	    self.state.data = states[-1]
+            stts = states[:]
+            y = 0
+            x = 0
+            for state in stts:
+                y += math.sin(state)
+                x += math.cos(state)
+            self.state.data = math.atan2(y, x)
             if self.state.data < self.setpoint.data - math.pi:
                 self.state.data += 2*math.pi
             elif self.state.data > self.setpoint.data + math.pi:
