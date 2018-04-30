@@ -1,0 +1,12 @@
+<launch>
+
+    <arg name="offline" default="false" />
+
+    <include file="$(find advanced_robotics_team6)/launch/advanced_robotics_team6.launch" >
+        <arg name="offline" value="$(arg offline)" />
+        <arg name="ir" value="false" />
+    </include>
+
+    <include file="$(find advanced_robotics_team6)/launch/camera.launch" />
+
+</launch>
