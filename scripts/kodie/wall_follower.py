@@ -30,9 +30,6 @@ class Wall_Follower:
         self.bottom_c_min_0 = 350
 
         self.top_corner_drift_0 = 320
-        #doorway offset values
-        self.bottom_d_min = 300
-        self.top_d_min = 400
         #stage 1 corner values
         self.top_c_min_1 = 75
         self.top_c_max_1 = 350
@@ -134,13 +131,13 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(6400)
-        print "MOTOR SPEED: ", self.motor_speed
+        self.motor_srv(self.wall_speed)
+        print "MOTOR SPEED: ", self.wall_speed
 
         self.state = "wall_follow"
         self.stage = 1 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
-	self.bottom_ir_pid.ignore = False
+        self.bottom_ir_pid.ignore = False
         self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         #self.time_since_turn = rospy.get_time()
@@ -243,15 +240,15 @@ class Wall_Follower:
             self.ir_bottom_diff = math.fabs(self.bottom_ir_pid.state.data - self.bottom_ir_pid.reported_states[-2])
             self.ir_top_diff = math.fabs(self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2])
             self.ir_top_difference = self.top_ir_pid.state.data - self.top_ir_pid.reported_states[-2]
-
+            self.corner_imu_error = math.fabs(self.corner_imu_pid.state.data - self.corner_imu_pid.setpoint.data)
             self.ir_bottom_average_error = math.fabs(self.bottom_ir_pid.setpoint.data - (self.bottom_ir_pid.reported_states[-1] + self.bottom_ir_pid.reported_states[-2] + self.bottom_ir_pid.reported_states[-3])/3)
             #accelerameter states for simplicity
             self.x_accel = self.cns.imu_states['linear_acceleration']['x'][-1] #need to check this
             self.y_accel = self.cns.imu_states['linear_acceleration']['y'][-1] # need to check this too
             self.imu_heading = self.wall_imu_pid.state.data
             print time.time()
-	    print "heading", self.imu_heading
-	    print "setpoint", self.wall_imu_pid.setpoint.data
+            print "heading", self.imu_heading
+            print "setpoint", self.wall_imu_pid.setpoint.data
             print "top ", self.ir_top
             print "bottom ", self.ir_bottom
             print "bottom_error ",self.ir_bottom_error
@@ -295,20 +292,22 @@ class Wall_Follower:
                     pass
 
             elif self.state == 'doorway':
-                #corner detected in doorway state
-                #if self.corner_logic():
-                    #self.corner_config()
-                    #print "exit to corner because bottom corner threshold"
                 #exit conditions for doorway state
                 if self.wall_logic():
                     self.wall_config()
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
-                if self.ir_bottom > 100 and self.corner_almost_complete == False:
-                    self.corner_almost_complete = True
-                if self.ir_bottom_error < 200 and self.corner_almost_complete == True:
-                    print "Exit Corner"
-                    self. wall_config()
+                if self.imu_turning:
+                    if self.corner_imu_error < math.pi/4:
+                        if self.ir_bottom_error < 200:
+                            print "Exit Corner"
+                            self.wall_config()
+                else:
+                    if self.ir_bottom > 100 and self.corner_almost_complete == False:
+                        self.corner_almost_complete = True
+                    if self.ir_bottom_error < 200 and self.corner_almost_complete == True:
+                        print "Exit Corner"
+                        self. wall_config()
             elif self.state == 'corner_near':
                 #enter corner from corner near
                 if self.corner_logic():
