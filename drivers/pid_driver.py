@@ -10,8 +10,8 @@ class PID:
     # Initialize PID communications
     def __init__(self, sensor, num_states_stored):
      	if sensor == "ir/one" or sensor == "ir/two":
-            self.pid = PID2.PID2(40,0,0)
-            self.pid.setSampleTime(0.02)
+            self.pid = PID2.PID2(20,1,3)
+            self.pid.setSampleTime(0.04)
         elif sensor == "imu/wall" or sensor == "imu/corner":
 
             self.pid = PID2.PID2(-6000,0,0)
@@ -91,7 +91,6 @@ class PID:
         self.reported_states.append(self.setpoint.data)
         self.state.data = self.setpoint.data
         self.pid.SetPoint = self.setpoint.data
-        print "setpoint", self.setpoint.data
     # Initialize IMU setpoint
     def imu_setpoint(self, states=None, setpoint=None):
         if setpoint:
@@ -135,7 +134,6 @@ class PID:
             output = -1705
         elif output > 2105:
             output = 2105
-        print "pid setpoint",self.pid.SetPoint
         self.second_control_effort = output
 
     # Publish IMU state
@@ -160,10 +158,9 @@ class PID:
         self.state_pub.publish(self.state)
         self.pid.update(self.state.data)
         output = self.pid.output
-        output = -output
+        #output = -output
         if output < -1705:
             output = -1705
         elif output > 2105:
             output = 2105
-        print "pid setpoint",self.pid.SetPoint
         self.second_control_effort = output
