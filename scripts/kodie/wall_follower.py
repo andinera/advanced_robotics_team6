@@ -54,11 +54,13 @@ class Wall_Follower:
         #state speeds
         self.motor_speed = 6500
         self.wall_speed = 6500
+        self.wall_speed_slow = 6300
         self.door_speed = 6300
-        self.corner_speed = 6400
-        self.near_corner_speed = 6400
+        self.corner_speed = 6250
+        self.near_corner_speed = 6300
         self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
+        self.brake_speed = 4500
         #drift speeds
         self.drift_wall_speed = 6200
         self.drift_speed = 4005
@@ -158,19 +160,42 @@ class Wall_Follower:
         #set speeds for different states
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
-            #set speeds for different stat
-            if self.stage == 2:
-               self.motor_srv(self.finishing_speed)
-            elif self.state == 'wall_follow':
-                self.motor_srv(self.motor_speed)
-            elif self.state == 'corner':
-                self.motor_srv(self.corner_speed)
-            elif self.state == 'corner_near':
-                self.motor_srv(self.near_corner_speed)
-            elif self.state == 'corner_near_stopped':
-                self.motor_srv(self.near_corner_stopped_speed)
-            else:
-                self.motor_srv(self.door_speed)
+
+            if self.stage == 0:
+                if self.stage == 'wall_follow':
+                    self.motor_srv(self.wall_speed)
+                elif self.stage == 'corner':
+                    self.motor_srv(self.corner_speed)
+                elif self.stage == 'corner_near':
+                    if time.time()-self.time_of_state_change < 0.5:
+                        self.motor_srv(self.brake_speed)
+                    else:
+                        self.motor_srv(self.near_corner_speed)
+                elif self.stage == 'doorway':
+                    self.motor_srv(self.wall_speed)
+            elif self.stage == 1:
+                if self.stage == 'wall_follow':
+                    if time.time()-self.time_of_state_change < 1:
+                        self.motor_srv(self.wall_speed_slow)
+                    else :
+                        self.motor_srv(self.wall_speed)
+                elif self.stage == 'corner':
+                    self.motor_srv(self.corner_speed)
+                elif self.stage == 'corner_near':
+                    if time.time()-self.time_of_state_change < 0.5:
+                        self.motor_srv(self.brake_speed)
+                    else:
+                        self.motor_srv(self.near_corner_speed)
+                elif self.stage == 'doorway':
+                    self.motor_srv(self.door_speed)
+            elif self.stage == 2:
+                if self.stage == 'wall_follow':
+                    if time.time()-self.time_of_state_change < 1:
+                        self.motor_srv(self.wall_speed_slow)
+                    else :
+                        self.motor_srv(self.wall_speed)
+                elif self.stage == 'doorway':
+                    self.motor_srv(self.wall_speed)
 
             #self.event.wait()
             self.event.clear()
