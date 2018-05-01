@@ -323,19 +323,19 @@ class Wall_Follower:
             steering_cmd = 0
             if not self.bottom_ir_pid.ignore:
                 i += 1
-                steering_cmd += self.bottom_ir_pid.control_effort
-		print "ir control: ",self.bottom_ir_pid.control_effort
-		print "ir top control", self.top_ir_pid.control_effort
+                steering_cmd += self.bottom_ir_pid.second_control_effort
+            print "ir control: ",self.bottom_ir_pid.second_control_effort
+            print "ir top control", self.top_ir_pid.second_control_effort
             if not self.wall_imu_pid.ignore:
                 i += 1
-                steering_cmd += self.wall_imu_pid.control_effort
-		print "wall imu control: ", self.wall_imu_pid.control_effort
+                steering_cmd += self.wall_imu_pid.second_control_effort
+            print "wall imu control: ", self.wall_imu_pid.second_control_effort
             if not self.corner_imu_pid.ignore:
                 i += 1
-                steering_cmd += self.corner_imu_pid.control_effort
-	    if i == 0:
-		steering_cmd = 0
-	    else:
+                steering_cmd += self.corner_imu_pid.second_control_effort
+	        if i == 0:
+		        steering_cmd = 0
+	        else:
                 steering_cmd /= i
             if self.take_data :
                 self.steering_srv(STEERING_CENTER)
