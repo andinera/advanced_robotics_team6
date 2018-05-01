@@ -130,8 +130,8 @@ class Controller:
 
         if pos != 0:
             pos = 1/float(pos)
-            #pos = 200000*pos-250
-	        pos = 304970*pos - 440
+            pos = 200000*pos-250
+	    #pos = 304970*pos - 440
 
         return pos
 

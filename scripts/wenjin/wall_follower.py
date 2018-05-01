@@ -55,7 +55,7 @@ class Wall_Follower:
 
     def execute(self):
         while not rospy.is_shutdown():
-            print self.cns.top_ir_states
+            print self.cns.ir_two_states
             while not rospy.is_shutdown() and len(self.cns.imu_states['orientation']['z']) < 9:
                 self.event.wait()
                 self.event.clear()
@@ -71,8 +71,8 @@ class Wall_Follower:
             corner_imu_error = math.fabs(self.corner_imu_pid.setpoint.data - self.corner_imu_pid.state.data)
 
             # finite differencing on state to estimate derivative (divide by timestep?)
-            bottom_ir_diff = math.fabs(self.bottom_ir_pid.state.data - self.cns.bottom_ir_states[-9])
-            top_ir_diff = math.fabs(self.top_ir_pid.state.data - self.cns.top_ir_states[-9])
+            bottom_ir_diff = math.fabs(self.bottom_ir_pid.state.data - self.cns.ir_one_states[-9])
+            top_ir_diff = math.fabs(self.top_ir_pid.state.data - self.cns.ir_two_states[-9])
             wall_imu_diff = math.fabs(self.wall_imu_pid.state.data - self.cns.imu_states['orientation']['z'][-9])
             corner_imu_diff = math.fabs(self.corner_imu_pid.state.data - self.cns.imu_states['orientation']['z'][-9])
             corner_count = 0
@@ -129,7 +129,7 @@ class Wall_Follower:
 
             elif self.state == 'corner':
                 print "CORNERING"
-                rospy.loginfo("CORNERING:\t{}".format(corner_imu_pid))
+                rospy.loginfo("CORNERING:\t{}".format(self.corner_imu_pid))
                 if corner_imu_error < math.pi/4.5:
                     print "REACHED IMU SETPOINT WITHIN IMU_THRESHOLD"
 
@@ -189,8 +189,8 @@ class Wall_Follower:
             self.publish_states()
 
     def publish_states(self):
-        self.bottom_ir_pid.ir_publish_state(self.cns.bottom_ir_states)
-        self.top_ir_pid.ir_publish_state(self.cns.top_ir_states)
+        self.bottom_ir_pid.ir_publish_state(self.cns.ir_one_states)
+        self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
         self.wall_imu_pid.imu_publish_state(self.cns.imu_states['orientation']['z'])
         self.corner_imu_pid.imu_publish_state(state=self.wall_imu_pid.state.data)
 

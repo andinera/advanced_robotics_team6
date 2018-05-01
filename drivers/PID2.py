@@ -30,7 +30,7 @@ More information about PID Controller: http://en.wikipedia.org/wiki/PID_controll
 """
 import time
 
-class PID:
+class PID2:
     """PID Controller
     """
 
