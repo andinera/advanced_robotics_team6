@@ -10,7 +10,7 @@ class PID:
     # Initialize PID communications
     def __init__(self, sensor, num_states_stored):
      	if sensor == "ir/one" or sensor == "ir/two":
-            self.pid = PID2.PID2(20,1,3)
+            self.pid = PID2.PID2(10,1,3)
             self.pid.setSampleTime(0.04)
         elif sensor == "imu/wall" or sensor == "imu/corner":
 
