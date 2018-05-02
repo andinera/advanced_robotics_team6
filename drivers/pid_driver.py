@@ -156,7 +156,11 @@ class PID:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
-        self.pid.update(self.state.data)
+        if self.setpoint.data - self.state.data < -math.pi:
+            self.pid.update(-math.pi - self.state.data)
+            self.state.data = -math.pi - self.state.data
+        else:
+            self.pid.update(self.state.data)
         output = self.pid.output
         #output = -output
         if output < -1705:

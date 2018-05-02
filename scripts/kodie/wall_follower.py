@@ -54,7 +54,7 @@ class Wall_Follower:
         self.wall_speed = 6400
         self.wall_speed_slow = 6300
         self.door_speed = 6250
-        self.corner_speed = 6300
+        self.corner_speed = 6350
         self.near_corner_speed = 6250
         self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
@@ -68,6 +68,8 @@ class Wall_Follower:
         self.doorways_seen = 0
         self.stage_1_doorways_seen = 0
         self.stage_0_doorways_seen = 0
+        self.is_braking = False
+        self.time_since_brake = time.time()
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -160,37 +162,40 @@ class Wall_Follower:
         #set speeds for different states
         while not rospy.is_shutdown():
 	    #time.sleep(.02)
-
-            if self.stage == 0:
+            if self.braking:
+                if time.time() - self.time_since_brake > .5:
+                    self.braking = False
+                    self.already_braked = True
+            elif self.stage == 0:
                 if self.state == 'wall_follow':
-                    if self.stage_0_doorways_seen == 1:
+                    if self.stage_0_doorways_seen > 2:
                         self.motor_srv(self.door_speed - 50)
-                    self.motor_srv(self.wall_speed)
+                    else:
+                        self.motor_srv(self.wall_speed)
                 elif self.state == 'corner':
                     self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
-                    if time.time()-self.time_of_state_change < 0.5 and self.already_braked == False:
+                    if self.already_braked == False"
+                        self.is_braking = True
                         self.motor_srv(self.brake_speed)
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
                     if self.stage_0_doorways_seen > 2 and time.time()-self.time_of_state_change < .5:
                         self.motor_srv(self.brake_speed)
-                        self.already_braked = True
                     else:
                         self.motor_srv(self.wall_speed)
             elif self.stage == 1:
                 if self.state == 'wall_follow':
-                    if time.time()-self.time_of_state_change < .5:
-                        self.motor_srv(self.wall_speed_slow)
-                    elif self.stage_1_doorways_seen == 1:
+                    if self.stage_1_doorways_seen == 1:
                         self.motor_srv(self.door_speed - 50)
                     else :
-                        self.motor_srv(self.wall_speed+200)
+                        self.motor_srv(self.wall_speed+300)
                 elif self.state == 'corner':
                     self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
-                    if time.time()-self.time_of_state_change < 0.5:
+                    if self.already_braked == False:
+                        self.is_braking = True
                         self.motor_srv(self.brake_speed)
                     else:
                         self.motor_srv(self.near_corner_speed)
@@ -355,11 +360,8 @@ class Wall_Follower:
 
         self.top_ir_pid.ir_publish_state(self.cns.ir_two_states)
         self.wall_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
-        if self.stage > 0 and self.cns.imu_states['orientation']['z'][-1] > 0:
-            angle = 2*math.pi - self.cns.imu_states['orientation']['z'][-1]
-            self.corner_imu_pid.imu_publish_state(state=angle)
-        else:
-            self.corner_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
+
+        self.corner_imu_pid.imu_publish_state(state=self.cns.imu_states['orientation']['z'][-1])
 
     def publish_steering_cmd(self):
         if self.state != 'corner' or self.imu_turning:    # Set steering command as average of steering commands that we want to use
@@ -377,7 +379,7 @@ class Wall_Follower:
             if not self.corner_imu_pid.ignore:
                 i += 1
                 steering_cmd += self.corner_imu_pid.second_control_effort
-	    if i == 0:
+            if i == 0:
                 steering_cmd = 0
             else:
                 steering_cmd /= i
