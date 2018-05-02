@@ -144,7 +144,7 @@ class Wall_Follower:
         self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         #self.time_since_turn = rospy.get_time()
-
+        self.already_braked = False
         self.previous_state = self.state
         self.previous_stage = self.stage
         self.time_of_state_change = time.time()
@@ -167,13 +167,14 @@ class Wall_Follower:
                 elif self.state == 'corner':
                     self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
-                    if time.time()-self.time_of_state_change < 0.5:
+                    if time.time()-self.time_of_state_change < 0.5 and already_braked == False:
                         self.motor_srv(self.brake_speed)
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
                     if self.stage_0_doorways_seen == 2 and time.time()-self.time_of_state_change < .5:
                         self.motor_srv(self.brake_speed)
+                        self.already_braked = True
                     else:
                         self.motor_srv(self.wall_speed)
             elif self.stage == 1:
@@ -213,7 +214,7 @@ class Wall_Follower:
 		print "loop entered"
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
-            if len(self.top_ir_pid.reported_states) > NUM_RECORDED_STATES-1:
+            if do_regression and len(self.top_ir_pid.reported_states) > NUM_RECORDED_STATES-1:
 		#print "doing regression"
                 x_range = [x for x in range(NUM_RECORDED_STATES)]
                 x_range = np.array(x_range)
@@ -403,7 +404,7 @@ class Wall_Follower:
             return False
 
     def doorway_logic(self):
-        if self.ir_top > self.top_d_min and self.ir_bottom_error > self.bottom_d_min and \
+        if self.ir_top > self.top_d_min + 50 and self.ir_bottom_error > self.bottom_d_min and \
         self.ir_bottom_diff > 120:
             return True
         else:
@@ -443,7 +444,7 @@ class Wall_Follower:
 
     def wall_config(self):
         self.bottom_ir_pid.ignore = False
-        self.wall_imu_pid.ignore = True
+        self.wall_imu_pid.ignore = False
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'wall_follow'
@@ -458,6 +459,7 @@ class Wall_Follower:
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.stage += 1
+        self.already_braked = False
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
