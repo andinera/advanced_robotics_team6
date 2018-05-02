@@ -123,7 +123,7 @@ class Wall_Follower:
             print "OPENING CSV"
             #need to check
             current_time = int(time.time())
-            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_4_29/working_runs{}.csv".format(current_time)
+            file_name = "/home/odroid/ros_ws/src/advanced_robotics_team6/data/test_4_29/working_runs2_{}.csv".format(current_time)
             csv_out = open(file_name , 'a')
             # csv_out = open("ir_course_data_doorway1.csv", 'a')
             self.writer = csv.writer(csv_out)
@@ -163,7 +163,7 @@ class Wall_Follower:
 
             if self.stage == 0:
                 if self.state == 'wall_follow':
-                    if self.stage_0_doorway_seen == 1:
+                    if self.stage_0_doorways_seen == 1:
                         self.motor_srv(self.door_speed - 50)
                     self.motor_srv(self.wall_speed)
                 elif self.state == 'corner':
@@ -183,7 +183,7 @@ class Wall_Follower:
                 if self.state == 'wall_follow':
                     if time.time()-self.time_of_state_change < 1:
                         self.motor_srv(self.wall_speed_slow)
-                    elif self.stage_1_doorway_seen == 1:
+                    elif self.stage_1_doorways_seen == 1:
                         self.motor_srv(self.door_speed - 50)
                     else :
                         self.motor_srv(self.wall_speed)
@@ -213,7 +213,7 @@ class Wall_Follower:
 
             while len(self.bottom_ir_pid.reported_states) < 4:
                 rospy.sleep(.1)
-		print "loop entered"
+                print "loop entered"
                 self.publish_states()
             #do linear regression on last NUM_RECORDED_STATES to determine validity of measurements
             if do_regression and len(self.top_ir_pid.reported_states) > NUM_RECORDED_STATES-1:
@@ -307,8 +307,10 @@ class Wall_Follower:
 
             elif self.state == 'doorway':
                 #exit conditions for doorway state
-		if self.ir_top < 330:
-                    self.cornernear_config()
+                if self.ir_top < 330:
+                    if (self.stage == 0 and self.stage_0_doorways_seen > 1) or \
+                    (self.stage == 1 and self.stage_1_doorways_seen > 0):
+                        self.cornernear_config()
                 if self.wall_logic():
                     self.wall_config()
                     print "Exited Doorway with standard method"
@@ -416,13 +418,13 @@ class Wall_Follower:
 
         if self.stage == 0:
             if self.ir_bottom_error > self.bottom_corner_near_0 and self.ir_top < self.top_corner_near_0 and \
-             self.ir_bottom_diff > self.bottom_corner_near_0:
+             self.ir_bottom_diff > self.bottom_corner_near_0 and self.stage_0_doorways_seen > 1:
                 return True
             else:
                 return False
         elif self.stage == 1:
             if self.ir_bottom_error > self.bottom_corner_near_1 and self.ir_top < self.top_corner_near_1 and \
-            self.ir_bottom_diff > 100:
+            self.ir_bottom_diff > 100 and stage_1_doorways_seen > 0:
                 return True
             else:
                 return False
