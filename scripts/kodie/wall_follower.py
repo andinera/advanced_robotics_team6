@@ -66,8 +66,8 @@ class Wall_Follower:
         self.acceleration_min = 1
         self.corner_almost_complete = False
         self.doorways_seen = 0
-        self.stage_1_doorway_seen = False
-	self.stage_0_doorways_seen = 0
+        self.stage_1_doorways_seen = 0
+        self.stage_0_doorways_seen = 0
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -163,6 +163,8 @@ class Wall_Follower:
 
             if self.stage == 0:
                 if self.state == 'wall_follow':
+                    if self.stage_0_doorway_seen == 1:
+                        self.motor_srv(self.door_speed - 50)
                     self.motor_srv(self.wall_speed)
                 elif self.state == 'corner':
                     self.motor_srv(self.corner_speed)
@@ -181,7 +183,7 @@ class Wall_Follower:
                 if self.state == 'wall_follow':
                     if time.time()-self.time_of_state_change < 1:
                         self.motor_srv(self.wall_speed_slow)
-                    elif self.stage_1_doorway_seen:
+                    elif self.stage_1_doorway_seen == 1:
                         self.motor_srv(self.door_speed - 50)
                     else :
                         self.motor_srv(self.wall_speed)
@@ -470,7 +472,7 @@ class Wall_Follower:
         if self.stage == 0:
             self.stage_0_doorways_seen += 1
         elif self.stage == 1:
-            self.stage_1_doorway_seen = True
+            self.stage_1_doorways_seen += 1
         self.time_of_state_change = time.time()
     def cornernear_config(self):
         self.bottom_ir_pid.ignore = True
