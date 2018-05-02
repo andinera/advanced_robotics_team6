@@ -223,10 +223,7 @@ class Wall_Follower:
                     self.stage_1_doorway_seen = True
             elif self.stage == 2:
                 if self.state == 'wall_follow':
-                    if time.time()-self.time_of_state_change < 1:
-                        self.motor_srv(self.wall_speed_slow)
-                    else :
-                        self.motor_srv(self.wall_speed+300)
+                    self.motor_srv(self.wall_speed+300)
                 elif self.state == 'doorway':
                     self.motor_srv(self.wall_speed)
                 else:
