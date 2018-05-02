@@ -37,7 +37,7 @@ class Wall_Follower:
         self.top_corner_drift_1 = 320
 
         self.top_at_corner_1 = 265
-        self.top_distance_to_turn_at_1 = 280
+        self.top_distance_to_turn_at_1 = 350
         self.top_corner_near_1 = 390
         self.bottom_corner_near_1 = 400
         self.bottom_c_min_1 = 350
@@ -54,7 +54,7 @@ class Wall_Follower:
         self.wall_speed = 6500
         self.wall_speed_slow = 6300
         self.door_speed = 6400
-        self.corner_speed = 6350
+        self.corner_speed = 6400
         self.near_corner_speed = 6250
         self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
@@ -179,6 +179,7 @@ class Wall_Follower:
                     if self.already_braked == False:
                         self.is_braking = True
                         self.motor_srv(self.brake_speed-500)
+                        self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
@@ -193,8 +194,8 @@ class Wall_Follower:
                         self.motor_srv(self.door_speed - 100)
                     elif self.stage_0_doorways_seen > 2:
                         self.motor_srv(self.brake_speed+300)
-			self.is_braking == True
-			self.time_since_brake = time.time()
+                        self.is_braking == True
+                        self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.wall_speed)
             elif self.stage == 1:
@@ -204,11 +205,17 @@ class Wall_Follower:
                     else :
                         self.motor_srv(self.wall_speed+300)
                 elif self.state == 'corner':
-                    self.motor_srv(self.corner_speed)
+                    if self.already_braked == False:
+                        self.is_braking = True
+                        self.motor_srv(self.brake_speed)
+                        self.time_since_brake = time.time()
+                    else:
+                        self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
                     if self.already_braked == False:
                         self.is_braking = True
                         self.motor_srv(self.brake_speed)
+                        self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
@@ -317,10 +324,12 @@ class Wall_Follower:
                 #check corner near state
                 if self.cornernear_logic():
                     print "CORNER NEAR"
+                    print " "
                     self.cornernear_config()
                 # doorway detected
                 elif self.doorway_logic():
                     print "DOORWAY DETECTED"
+                    print " "
                     self.doorway_config()
                 else:
                     pass
@@ -334,10 +343,13 @@ class Wall_Follower:
                     print "Exited Doorway with standard method"
             elif self.state == 'corner':
                 if self.imu_turning:
-                    if self.corner_imu_error < math.pi/4:
-                        self.motor_srv(self.corner_speed)
+                    if self.is_braking and self.corner_imu_error < math.pi/8:
+                        self.is_braking = False
+                        self.already_braked = True
+                        print "brake finished"
                     if self.corner_imu_error < math.pi/4 and time.time()-self.time_of_state_change > 1.5:
-                        if self.ir_bottom_error < 200:
+                        if self.ir_bottom_error < 300:
+                            self.already_braked = False
                             print "Exit Corner"
                             self.wall_config()
                 else:
@@ -349,6 +361,8 @@ class Wall_Follower:
             elif self.state == 'corner_near':
                 #enter corner from corner near
                 if self.corner_logic():
+                    print "CORNERING"
+                    print " "
                     self.corner_config()
     		    #enter wall follow from corner near
                 elif self.wall_logic():
@@ -484,7 +498,7 @@ class Wall_Follower:
         self.wall_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.corner_imu_pid.imu_setpoint(setpoint=imu_setpoint)
         self.stage += 1
-        self.already_braked = False
+
         self.time_of_state_change = time.time()
     def doorway_config(self):
         self.bottom_ir_pid.ignore = True
