@@ -314,7 +314,7 @@ class Wall_Follower:
                 #exit conditions for doorway state
                 if self.ir_top < 330:
                     if (self.stage == 0 and self.stage_0_doorways_seen > 1) or \
-                    (self.stage == 1 and self.stage_1_doorways_seen > 0):
+                    (self.stage == 1 and self.stage_1_doorways_seen > 0) and self.stage != 2:
                         self.cornernear_config()
                 if self.wall_logic():
                     self.wall_config()
