@@ -51,7 +51,7 @@ class Wall_Follower:
         self.side_acceration_limit = 0.5
         #state speeds
         self.motor_speed = 6500
-        self.wall_speed = 6600
+        self.wall_speed = 6500
         self.wall_speed_slow = 6300
         self.door_speed = 6300
         self.corner_speed = 6300
@@ -67,6 +67,7 @@ class Wall_Follower:
         self.corner_almost_complete = False
         self.doorways_seen = 0
         self.stage_1_doorway_seen = False
+	self.stage_0_doorways_seen = 0
         # Event for synchronizing processes
         self.event = event
         # Driver for sensor input gathering
@@ -137,7 +138,7 @@ class Wall_Follower:
         print "MOTOR SPEED: ", self.wall_speed
 
         self.state = "wall_follow"
-        self.stage = 1 # 1 for testing, to know if on first, second or third straightaway
+        self.stage = 0 # 1 for testing, to know if on first, second or third straightaway
         self.top_ir_pid.ignore = True
         self.bottom_ir_pid.ignore = False
         self.wall_imu_pid.ignore = False
@@ -171,7 +172,10 @@ class Wall_Follower:
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
-                    self.motor_srv(self.wall_speed)
+                    if self.stage_0_doorways_seen == 2 and time.time()-self.time_of_state_change < .5:
+                        self.motor_srv(self.brake_speed)
+                    else:
+                        self.motor_srv(self.wall_speed)
             elif self.stage == 1:
                 if self.state == 'wall_follow':
                     if time.time()-self.time_of_state_change < 1:
@@ -300,7 +304,7 @@ class Wall_Follower:
 
             elif self.state == 'doorway':
                 #exit conditions for doorway state
-		if self.ir_top < 320:
+		if self.ir_top < 330:
                     self.cornernear_config()
                 if self.wall_logic():
                     self.wall_config()
@@ -376,7 +380,7 @@ class Wall_Follower:
             self.steering_srv(7995)
 
     def wall_logic(self):
-        if self.ir_bottom_error < 100 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
+        if self.ir_bottom_error < 200 and self.ir_top > self.top_d_min and self.ir_bottom_diff < 30:
             return True
         else:
             return False
@@ -461,6 +465,10 @@ class Wall_Follower:
         self.corner_imu_pid.ignore = True
         self.previous_state = self.state
         self.state = 'doorway'
+        if self.stage == 0:
+            self.stage_0_doorways_seen += 1
+        elif self.stage == 1:
+            self.stage_1_doorway_seen = True
         self.time_of_state_change = time.time()
     def cornernear_config(self):
         self.bottom_ir_pid.ignore = True
