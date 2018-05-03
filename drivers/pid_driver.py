@@ -10,7 +10,7 @@ class PID:
     # Initialize PID communications
     def __init__(self, sensor, num_states_stored):
      	if sensor == "ir/one" or sensor == "ir/two":
-            self.pid = PID2.PID2(5,1,3)
+            self.pid = PID2.PID2(5,1,4)
             self.pid.setSampleTime(0.04)
         elif sensor == "imu/wall" or sensor == "imu/corner":
 
@@ -157,8 +157,8 @@ class PID:
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
         if self.setpoint.data - self.state.data < -math.pi:
-            self.pid.update(-math.pi - self.state.data)
-            self.state.data = -math.pi - self.state.data
+            self.pid.update(-2*math.pi + self.state.data)
+            self.state.data = -2*math.pi + self.state.data
         else:
             self.pid.update(self.state.data)
         output = self.pid.output
