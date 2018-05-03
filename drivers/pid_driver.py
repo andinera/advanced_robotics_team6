@@ -4,15 +4,24 @@ import rospy
 from std_msgs.msg import Float64, Bool
 import math
 import numpy
+import PID2
 
 class PID:
     # Initialize PID communications
     def __init__(self, sensor, num_states_stored):
+     	if sensor == "ir/one" or sensor == "ir/two":
+            self.pid = PID2.PID2(5,1,3)
+            self.pid.setSampleTime(0.04)
+        elif sensor == "imu/wall" or sensor == "imu/corner":
+
+            self.pid = PID2.PID2(-6000,0,0)
+            self.pid.setSampleTime(0.02)
         # Attributes passed during initialization
         self.sensor = sensor            # Name of sensor
         self.num_states_stored = num_states_stored        # Number of states to be saved
         # Attributes used for PID control
         self.control_effort = 0         # PID control
+        self.second_control_effort = 0
         # PID messages
         self.setpoint = Float64()
         self.state = Float64()
@@ -81,7 +90,7 @@ class PID:
             del self.reported_states[0]
         self.reported_states.append(self.setpoint.data)
         self.state.data = self.setpoint.data
-
+        self.pid.SetPoint = self.setpoint.data
     # Initialize IMU setpoint
     def imu_setpoint(self, states=None, setpoint=None):
         if setpoint:
@@ -104,9 +113,8 @@ class PID:
             del self.reported_states[0]
         self.reported_states.append(self.setpoint.data)
         self.state.data = self.setpoint.data
+        self.pid.SetPoint = self.setpoint.data
 
-
-    # Publish IR sensor state
     def ir_publish_state(self, states):
         stts = states[:]
         std_dev = numpy.std(stts)
@@ -119,6 +127,14 @@ class PID:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
+        self.pid.update(self.state.data)
+        output = self.pid.output
+        output = -output
+        if output < -1705:
+            output = -1705
+        elif output > 2105:
+            output = 2105
+        self.second_control_effort = output
 
     # Publish IMU state
     def imu_publish_state(self, states=None, state=None):
@@ -140,3 +156,15 @@ class PID:
             del self.reported_states[0]
         self.reported_states.append(self.state.data)
         self.state_pub.publish(self.state)
+        if self.setpoint.data - self.state.data < -math.pi:
+            self.pid.update(-math.pi - self.state.data)
+            self.state.data = -math.pi - self.state.data
+        else:
+            self.pid.update(self.state.data)
+        output = self.pid.output
+        #output = -output
+        if output < -1705:
+            output = -1705
+        elif output > 2105:
+            output = 2105
+        self.second_control_effort = output
