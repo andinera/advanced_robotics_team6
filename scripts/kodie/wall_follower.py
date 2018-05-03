@@ -136,7 +136,7 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(self.wall_speed+700)
+        self.motor_srv(self.wall_speed+400)
         print "MOTOR SPEED: ", self.wall_speed
 
         self.state = "wall_follow"
@@ -165,18 +165,20 @@ class Wall_Follower:
 	    #time.sleep(.02)
             if self.is_braking:
                 print "braking"
-                if time.time() - self.time_since_brake > 0.3:
+                if time.time() - self.time_since_brake > 0.05:
                     self.is_braking = False
                     self.already_braked = True
                     print "brake finished"
             elif self.stage == 0:
                 if self.state == 'wall_follow':
                     if self.stage_0_doorways_seen > 1 and time.time() - self.time_of_state_change < 1:
-                       self.motor_srv(5000)
+                       self.motor_srv(5400)
+                       self.wall_imu_pid.ignore = False
+                       self.bottom_ir_pid.ignore = True
                     elif self.stage_0_doorways_seen > 1:
                         self.motor_srv(6200)
                     else:
-                        self.motor_srv(self.wall_speed+700)
+                        self.motor_srv(self.wall_speed+200)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
@@ -193,24 +195,25 @@ class Wall_Follower:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
                     if self.stage_0_doorways_seen == 1:
-                        self.motor_srv(self.wall_speed+600)
+                        self.motor_srv(self.wall_speed+200)
                     elif self.stage_0_doorways_seen > 2:
                         self.motor_srv(self.brake_speed+200)
                         self.is_braking == True
                         self.time_since_brake = time.time()
                     elif self.stage_0_doorways_seen == 2 :
-                        self.motor_srv(5000)
+                        self.motor_srv(5300)
 
                     else:
                         self.motor_srv(self.wall_speed)
             elif self.stage == 1:
                 if self.state == 'wall_follow':
                     if self.stage_1_doorways_seen == 1 and time.time() - self.time_of_state_change < 2:
-                        self.motor_srv(5300)    
+                        self.motor_srv(5300)
+                        self.bottom_ir_pid.ignore = True    
                     elif self.stage_1_doorways_seen == 1:
                         self.motor_srv(6200)
                     else :
-                        self.motor_srv(7905)
+                        self.motor_srv(7305)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
@@ -226,7 +229,7 @@ class Wall_Follower:
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
-                    self.motor_srv(6500)
+                    self.motor_srv(5300)
                     self.stage_1_doorway_seen = True
             elif self.stage == 2:
                 if self.state == 'wall_follow':

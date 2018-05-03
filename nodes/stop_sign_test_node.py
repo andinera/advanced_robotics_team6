@@ -25,12 +25,14 @@ class StopSignTest:
         # If predict a stop sign
         # then stop
         # else go
-        if msg:
+        if msg.data:
+            print self.stop_speed
             self.motor_srv(self.stop_speed)
         else:
+            print self.go_speed
             self.motor_srv(self.go_speed)
 
-# Method fir directly calling script
+# Method for directly calling script
 if __name__ == '__main__':
     rospy.init_node('stop_sign_test_node', anonymous=True)
     StopSignTest()
