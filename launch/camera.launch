@@ -7,7 +7,4 @@
     <node pkg="image_proc" type="image_proc" name="image_proc" ns="camera" output="screen" >
 	</node>
 
-    <node if="$(arg stop_sign)" pkg="advanced_robotics_team6" type="stop_sign_node.py" name="stop_sign_node" output="screen" >
-    </node>
-
 </launch>

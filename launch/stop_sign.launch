@@ -1,0 +1,12 @@
+<launch>
+    <!-- Required for sending speed commands to Pololu -->
+    <include file="$(find advanced_robotics_team6)/launch/advanced_robotics_team6.launch" />
+    <!-- Required for receiving video inputs -->
+    <include file="$(find advanced_robotics_team6)/launch/camera.launch" />
+    <!-- Required for prediction stop sign in video -->
+    <node pkg="advanced_robotics_team6" type="stop_sign_node.py" name="stop_sign_node" output="screen" >
+    </node>
+    <!-- Required for controlling speed given stop sign input -->
+    <node pkg="advanced_robotics_team6" type="stop_sign_test_node.py" name="stop_sign_test_node" output="screen" >
+    </node>
+</launch>
