@@ -16,6 +16,7 @@ STEERING_CENTER = 5800
 class Wall_Follower:
 
     def __init__(self,event):
+        self.battery_charge = 1.3
         self.drift = False
         self.take_data = False
         self.write_data = True
@@ -136,7 +137,7 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(self.wall_speed+200)
+        self.motor_srv(MOTOR_CENTER + 700*1/self.battery_charge)
         print "MOTOR SPEED: ", self.wall_speed
 
         self.state = "wall_follow"
@@ -172,72 +173,74 @@ class Wall_Follower:
             elif self.stage == 0:
                 if self.state == 'wall_follow':
                     if self.stage_0_doorways_seen > 1 and time.time() - self.time_of_state_change < 1:
-                       self.motor_srv(5400)
+                       self.motor_srv(MOTOR_CENTER -600/self.battery_charge)
                        self.wall_imu_pid.ignore = False
-                       self.bottom_ir_pid.ignore = True
+                       self.bottom_ir_pid.ignore = False
                     elif self.stage_0_doorways_seen > 1:
                         self.motor_srv(6200)
                     else:
-                        self.motor_srv(self.wall_speed+100)
+                        self.motor_srv(MOTOR_CENTER + 600 /self.battery_charge)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
-                        self.motor_srv(self.brake_speed-500)
+                        self.motor_srv(MOTOR_CENTER - 1700/self.battery_charge)
                         self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.corner_speed)
                 elif self.state == 'corner_near':
                     if self.already_braked == False:
                         self.is_braking = True
-                        self.motor_srv(self.brake_speed-500)
+                        self.motor_srv(MOTOR_CENTER - 1700/self.battery_charge)
                         self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
                     if self.stage_0_doorways_seen == 1:
-                        self.motor_srv(self.wall_speed+200)
+                        self.motor_srv(MOTOR_CENTER + 700/self.battery_charge)
                     elif self.stage_0_doorways_seen > 2:
-                        self.motor_srv(self.brake_speed+300)
+                        self.motor_srv(MOTOR_CENTER - 1000/self.battery_charge)
                         self.is_braking == True
                         self.time_since_brake = time.time()
                     elif self.stage_0_doorways_seen == 2 :
-                        self.motor_srv(5300)
+                        self.motor_srv(MOTOR_CENTER - 700/self.battery_charge)
 
                     else:
                         self.motor_srv(self.wall_speed)
             elif self.stage == 1:
                 if self.state == 'wall_follow':
                     if self.stage_1_doorways_seen == 1 and time.time() - self.time_of_state_change < 2:
-                        self.motor_srv(5500)
-                        self.bottom_ir_pid.ignore = True    
+                        self.motor_srv(MOTOR_CENTER - 500/self.battery_charge)
+                        self.bottom_ir_pid.ignore = False    
                     elif self.stage_1_doorways_seen == 1:
                         self.motor_srv(6200)
                     else :
-                        self.motor_srv(6905)
+                        self.motor_srv(MOTOR_CENTER +800/self.battery_charge)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
-                        self.motor_srv(self.brake_speed)
+                        self.motor_srv(MOTOR_CENTER -1300/self.battery_charge)
                         self.time_since_brake = time.time()
                     else:
-                        self.motor_srv(self.corner_speed)
+                        self.motor_srv(MOTOR_CENTER + 400/self.battery_charge)
                 elif self.state == 'corner_near':
                     if self.already_braked == False:
                         self.is_braking = True
-                        self.motor_srv(self.brake_speed)
+                        self.motor_srv(MOTOR_CENTER - 1300/self.battery_charge)
                         self.time_since_brake = time.time()
                     else:
                         self.motor_srv(self.near_corner_speed)
                 elif self.state == 'doorway':
-                    self.motor_srv(5500)
+                    self.motor_srv(MOTOR_CENTER - 500/self.battery_charge)
                     self.stage_1_doorway_seen = True
             elif self.stage == 2:
-                if self.state == 'wall_follow':
+                if self.state == 'wall_follow' and time.time()- time_of_state_change > .6:
                     self.motor_srv(7905)
+                elif self.state == 'wall_follow':
+                    self.motor_srv(MOTOR_CENTER + 900/self.battery_charge)
                 elif self.state == 'doorway':
                     self.motor_srv(7905)
                 else:
-                    self.motor_srv(self.corner_speed)
+                    self.motor_srv(MOTOR_CENTER+400/self.battery_charges)
 
             #self.event.wait()
             self.event.clear()
@@ -323,7 +326,7 @@ class Wall_Follower:
                    self.regression_coef, self.regression_score, self.predicted_wall_distance,\
                    self.cns.imu_states['orientation']['x'][-1],self.cns.imu_states['orientation']['y'][-1],\
                    self.cns.imu_states['orientation']['z'][-1]])
-            if time.time() - self.start_time < 2:
+            if time.time() - self.start_time < 1.7:
                 print "first stage"
                 self.time_of_state_change = time.time()
             elif self.state == 'data':
@@ -429,7 +432,7 @@ class Wall_Follower:
             self.steering_srv(7995)
 
     def wall_logic(self):
-        if self.ir_bottom_error < 300 and self.ir_bottom_diff < 50:
+        if self.ir_bottom_error < 350 and self.ir_bottom_diff < 50:
             return True
         else:
             return False
