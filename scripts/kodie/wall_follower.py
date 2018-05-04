@@ -54,7 +54,7 @@ class Wall_Follower:
         self.wall_speed = 6500
         self.wall_speed_slow = 6300
         self.door_speed = 6400
-        self.corner_speed = 6600
+        self.corner_speed = 6700
         self.near_corner_speed = 6250
         self.near_corner_stopped_speed = 6400
         self.finishing_speed = 6300
@@ -172,7 +172,7 @@ class Wall_Follower:
             elif self.stage == 0:
                 if self.state == 'wall_follow':
                     if self.stage_0_doorways_seen > 1 and time.time() - self.time_of_state_change < 1:
-                       self.motor_srv(5300)
+                       self.motor_srv(5400)
                        self.wall_imu_pid.ignore = False
                        self.bottom_ir_pid.ignore = True
                     elif self.stage_0_doorways_seen > 1:
@@ -197,11 +197,11 @@ class Wall_Follower:
                     if self.stage_0_doorways_seen == 1:
                         self.motor_srv(self.wall_speed+200)
                     elif self.stage_0_doorways_seen > 2:
-                        self.motor_srv(self.brake_speed+200)
+                        self.motor_srv(self.brake_speed+300)
                         self.is_braking == True
                         self.time_since_brake = time.time()
                     elif self.stage_0_doorways_seen == 2 :
-                        self.motor_srv(5200)
+                        self.motor_srv(5300)
 
                     else:
                         self.motor_srv(self.wall_speed)
@@ -451,7 +451,7 @@ class Wall_Follower:
             return False
 
     def doorway_logic(self):
-        if self.ir_top > self.top_d_min + 50 and self.ir_bottom_error > self.bottom_d_min and \
+        if self.ir_top > self.top_d_min + 50 and self.ir_bottom_error > self.bottom_d_min + 200 and \
         self.ir_bottom_diff > 120:
             return True
         else:
