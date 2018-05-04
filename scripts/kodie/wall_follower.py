@@ -136,7 +136,7 @@ class Wall_Follower:
         #self.corner_imu_pid.imu_setpoint(setpoint=self.wall_imu_pid.setpoint.data)
 
         # Set forward speed
-        self.motor_srv(self.wall_speed+400)
+        self.motor_srv(self.wall_speed+200)
         print "MOTOR SPEED: ", self.wall_speed
 
         self.state = "wall_follow"
@@ -172,13 +172,13 @@ class Wall_Follower:
             elif self.stage == 0:
                 if self.state == 'wall_follow':
                     if self.stage_0_doorways_seen > 1 and time.time() - self.time_of_state_change < 1:
-                       self.motor_srv(5400)
+                       self.motor_srv(5300)
                        self.wall_imu_pid.ignore = False
                        self.bottom_ir_pid.ignore = True
                     elif self.stage_0_doorways_seen > 1:
                         self.motor_srv(6200)
                     else:
-                        self.motor_srv(self.wall_speed+200)
+                        self.motor_srv(self.wall_speed+100)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
@@ -201,7 +201,7 @@ class Wall_Follower:
                         self.is_braking == True
                         self.time_since_brake = time.time()
                     elif self.stage_0_doorways_seen == 2 :
-                        self.motor_srv(5300)
+                        self.motor_srv(5200)
 
                     else:
                         self.motor_srv(self.wall_speed)
@@ -213,7 +213,7 @@ class Wall_Follower:
                     elif self.stage_1_doorways_seen == 1:
                         self.motor_srv(6200)
                     else :
-                        self.motor_srv(7305)
+                        self.motor_srv(7105)
                 elif self.state == 'corner':
                     if self.already_braked == False:
                         self.is_braking = True
@@ -355,7 +355,7 @@ class Wall_Follower:
                         self.already_braked = True
                         self.motor_srv(6500)
                         print "brake finished"
-                    if self.corner_imu_error < math.pi/4 and time.time()-self.time_of_state_change > 2:
+                    if self.corner_imu_error < math.pi/4 and time.time()-self.time_of_state_change > 1.25:
                         if self.ir_bottom_error < 300:
                             self.already_braked = False
                             print "Exit Corner"
