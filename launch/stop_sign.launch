@@ -1,6 +1,9 @@
 <launch>
+
+    <arg name="offline" default="false" />
+
     <!-- Required for sending speed commands to Pololu -->
-    <include file="$(find advanced_robotics_team6)/launch/advanced_robotics_team6.launch" />
+    <include unless="$(arg offline)" file="$(find advanced_robotics_team6)/launch/advanced_robotics_team6.launch" />
     <!-- Required for receiving video inputs -->
     <!-- <include file="$(find advanced_robotics_team6)/launch/camera.launch" /> -->
     <!-- Required for prediction stop sign in video -->
