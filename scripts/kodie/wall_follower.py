@@ -233,14 +233,14 @@ class Wall_Follower:
                     self.motor_srv(MOTOR_CENTER - 500/self.battery_charge)
                     self.stage_1_doorway_seen = True
             elif self.stage == 2:
-                if self.state == 'wall_follow' and time.time()- time_of_state_change > .6:
+                if self.state == 'wall_follow' and time.time()- self.time_of_state_change > .6:
                     self.motor_srv(7905)
                 elif self.state == 'wall_follow':
                     self.motor_srv(MOTOR_CENTER + 900/self.battery_charge)
                 elif self.state == 'doorway':
                     self.motor_srv(7905)
                 else:
-                    self.motor_srv(MOTOR_CENTER+400/self.battery_charges)
+                    self.motor_srv(MOTOR_CENTER+400/self.battery_charge)
 
             #self.event.wait()
             self.event.clear()
