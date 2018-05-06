@@ -8,6 +8,7 @@ import numpy as np
 from time import time
 from threading import Event
 from keras.models import load_model
+import tensorflow as tf
 
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
@@ -28,11 +29,10 @@ class StopSign:
         try:
             r = rospkg.RosPack()
             self.model = load_model(r.get_path("advanced_robotics_team6")+"/data/stop_sign/stop_sign_holding.h5")
+            self.model._make_predict_function()
+            self.graph = tf.get_default_graph()
         except IOError, e:
             print e
-        self.model.compile(loss='binary_crossentropy',
-                      optimizer='rmsprop',
-                      metrics=['accuracy'])
 
         # Publishes object recognition prediction
         self.stop_sign_pub = rospy.Publisher('stop_sign/prediction',
@@ -61,14 +61,16 @@ class StopSign:
             # Normalize the image
             image = np.divide(image, 255.)
             # Perform prediction
-            prediction = self.model.predict(image, batch_size=1)
-            # Publish prediction
-            if prediction >= 0.5:
-                print "Stop sign detected."
-                self.stop_sign_pub.publish(True)
-            else:
-                print "No stop sign detected."
-                self.stop_sign_pub.publish(False)
+            with self.graph.as_default():
+                prediction = self.model.predict(image, batch_size=1)
+                # Publish prediction
+                print prediction
+                if prediction >= 1e-5:
+                    print "Stop sign detected."
+                    self.stop_sign_pub.publish(True)
+                else:
+                    print "No stop sign detected."
+                    self.stop_sign_pub.publish(False)
             self.event.set()
 
 if __name__ == '__main__':
